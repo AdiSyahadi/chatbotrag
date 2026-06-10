@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tanya PMB — Informasi Penerimaan Mahasiswa Baru</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ═══ Navbar ═══ -->
+    <nav class="navbar">
+        <div class="container nav-inner">
+            <a href="#" class="nav-brand">
+                <i class="bi bi-mortarboard"></i> Tanya PMB
+            </a>
+            <ul class="nav-links">
+                <li><a href="#fitur">Fitur</a></li>
+                <li><a href="#cara-kerja">Cara Kerja</a></li>
+                <li><a href="#faq">FAQ</a></li>
+            </ul>
+            <button class="nav-toggle" id="nav-toggle" aria-label="Menu">
+                <i class="bi bi-list"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ═══ Hero ═══ -->
+    <section class="hero">
+        <div class="container hero-inner">
+            <div class="hero-text">
+                <span class="badge"><i class="bi bi-stars"></i> AI-Powered</span>
+                <h1>Semua Informasi PMB, Cukup Tanya di Sini</h1>
+                <p><strong>Tanya PMB</strong> menggunakan teknologi <strong>RAG (Retrieval-Augmented Generation)</strong> dan <strong>Google Gemini</strong> untuk menjawab semua pertanyaan seputar Penerimaan Mahasiswa Baru secara cepat dan akurat.</p>
+                <div class="hero-actions">
+                    <button class="btn btn-primary" id="btn-tanya-sekarang">
+                        <i class="bi bi-chat-dots"></i> Tanya Sekarang
+                    </button>
+                    <a href="#cara-kerja" class="btn btn-outline">
+                        <i class="bi bi-arrow-down-circle"></i> Pelajari
+                    </a>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="hero-card">
+                    <div class="hero-card-header">
+                        <span class="dot red"></span>
+                        <span class="dot yellow"></span>
+                        <span class="dot green"></span>
+                    </div>
+                    <div class="hero-card-body">
+                        <div class="chat-line user">Kapan pendaftaran PMB dibuka?</div>
+                        <div class="chat-line bot">
+                            Pendaftaran <strong>PMB jalur reguler</strong> dibuka mulai bulan Maret hingga Juli. Untuk jalur prestasi, pendaftaran dibuka lebih awal mulai Januari...
+                        </div>
+                        <div class="typing-indicator">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══ Fitur ═══ -->
+    <section class="section" id="fitur">
+        <div class="container">
+            <div class="section-header">
+                <span class="badge"><i class="bi bi-gem"></i> Fitur Utama</span>
+                <h2>Kenapa Menggunakan Tanya PMB?</h2>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-search"></i>
+                    </div>
+                    <h3>Pencarian Cerdas</h3>
+                    <p>AI memahami <em>makna</em> pertanyaan Anda dan mencari jawaban paling relevan dari seluruh dokumen PMB.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-clock-history"></i>
+                    </div>
+                    <h3>Tersedia 24/7</h3>
+                    <p>Tidak perlu menunggu jam kerja. Tanyakan informasi PMB kapan saja, chatbot selalu siap menjawab.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-lightning-charge"></i>
+                    </div>
+                    <h3>Jawaban Instan</h3>
+                    <p>Didukung oleh Google Gemini, jawaban dihasilkan dalam hitungan detik dengan akurasi tinggi.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h3>Berbasis Dokumen Resmi</h3>
+                    <p>Jawaban selalu berdasarkan dokumen PMB resmi yang telah diupload, bukan informasi dari sumber luar.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-journal-bookmark"></i>
+                    </div>
+                    <h3>Info Lengkap</h3>
+                    <p>Jadwal, persyaratan, biaya, jalur masuk, program studi — semua informasi PMB dalam satu tempat.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-translate"></i>
+                    </div>
+                    <h3>Bilingual</h3>
+                    <p>Mendukung pertanyaan dalam Bahasa Indonesia maupun Inggris secara otomatis.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══ Cara Kerja ═══ -->
+    <section class="section section-alt" id="cara-kerja">
+        <div class="container">
+            <div class="section-header">
+                <span class="badge"><i class="bi bi-gear-wide-connected"></i> Cara Kerja</span>
+                <h2>Dari Dokumen PMB Menjadi Jawaban</h2>
+            </div>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Upload Dokumen PMB</h3>
+                        <p>Admin mengupload dokumen resmi PMB (PDF, DOCX, TXT) ke dashboard sistem.</p>
+                    </div>
+                </div>
+                <div class="step-connector"></div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>Proses & Indexing</h3>
+                        <p>Dokumen dipecah menjadi chunk, diubah menjadi embedding vektor, dan disimpan di ChromaDB.</p>
+                    </div>
+                </div>
+                <div class="step-connector"></div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>Tanya via Chatbot</h3>
+                        <p>Calon mahasiswa bertanya lewat chatbot — sistem mencari info paling relevan dan menjawab via Gemini.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══ FAQ ═══ -->
+    <section class="section" id="faq">
+        <div class="container">
+            <div class="section-header">
+                <span class="badge"><i class="bi bi-question-circle"></i> FAQ</span>
+                <h2>Pertanyaan yang Sering Diajukan</h2>
+            </div>
+            <div class="faq-list">
+                <details class="faq-item">
+                    <summary><i class="bi bi-patch-question"></i> Apa itu Tanya PMB?</summary>
+                    <p>Tanya PMB adalah chatbot berbasis AI yang menjawab pertanyaan seputar Penerimaan Mahasiswa Baru. Sistem ini menggunakan teknologi RAG (Retrieval-Augmented Generation) yang menggabungkan pencarian dokumen dengan Google Gemini untuk menghasilkan jawaban akurat berdasarkan dokumen resmi.</p>
+                </details>
+                <details class="faq-item">
+                    <summary><i class="bi bi-patch-question"></i> Informasi apa saja yang bisa ditanyakan?</summary>
+                    <p>Anda bisa bertanya tentang <strong>jadwal pendaftaran</strong>, <strong>persyaratan masuk</strong>, <strong>jalur penerimaan</strong>, <strong>biaya kuliah</strong>, <strong>program studi</strong>, <strong>beasiswa</strong>, dan informasi PMB lainnya yang tersedia dalam dokumen resmi.</p>
+                </details>
+                <details class="faq-item">
+                    <summary><i class="bi bi-patch-question"></i> Apakah jawaban chatbot bisa dipercaya?</summary>
+                    <p>Ya, jawaban selalu berbasis dokumen resmi PMB yang telah diupload oleh admin. Chatbot tidak menghasilkan informasi dari sumber luar atau mengarang jawaban.</p>
+                </details>
+                <details class="faq-item">
+                    <summary><i class="bi bi-patch-question"></i> Apakah bisa diakses kapan saja?</summary>
+                    <p>Ya, chatbot tersedia 24/7. Anda bisa bertanya kapan saja tanpa menunggu jam kerja kampus.</p>
+                </details>
+                <details class="faq-item">
+                    <summary><i class="bi bi-patch-question"></i> Bagaimana jika pertanyaan saya tidak terjawab?</summary>
+                    <p>Jika informasi belum tersedia di database, chatbot akan memberitahu bahwa data belum ada. Anda bisa menghubungi panitia PMB secara langsung untuk pertanyaan yang belum tercakup.</p>
+                </details>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══ Footer ═══ -->
+    <footer class="footer">
+        <div class="container footer-inner">
+            <div class="footer-brand">
+                <i class="bi bi-mortarboard"></i> Tanya PMB
+            </div>
+            <p>Sistem Informasi PMB Cerdas — Didukung oleh AI.</p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+    <script id="rag-widget-script" src="widget.js"></script>
+</body>
+</html>

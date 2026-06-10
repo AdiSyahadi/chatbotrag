@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+
+{% block title %}Embed Widget — RAG Chatbot{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-code-square"></i> Embed Widget</h1>
+    <p>Integrasikan chatbot ke website manapun dengan satu baris kode.</p>
+</div>
+
+<!-- Preview Section -->
+<div class="card" style="margin-bottom:24px">
+    <div class="card-header"><i class="bi bi-eye"></i> Preview Widget</div>
+    <div class="card-body" style="min-height:200px;position:relative;background:#f7f8fa;border-radius:0 0 8px 8px">
+        <p style="color:#6b7280;text-align:center;padding-top:40px">
+            <i class="bi bi-arrow-down-right" style="font-size:24px"></i><br>
+            Widget akan muncul di pojok kanan bawah halaman ini.
+        </p>
+    </div>
+</div>
+
+<!-- How to Embed -->
+<div class="card" style="margin-bottom:24px">
+    <div class="card-header"><i class="bi bi-journal-code"></i> Cara Embed</div>
+    <div class="card-body">
+        <p style="margin-bottom:14px">Tambahkan tag <code>&lt;script&gt;</code> berikut sebelum penutup <code>&lt;/body&gt;</code> di website Anda:</p>
+
+        <div style="position:relative">
+            <pre id="embed-code" style="background:#1a202c;color:#e2e8f0;padding:18px 20px;border-radius:8px;font-size:13.5px;overflow-x:auto;line-height:1.6">&lt;script src="<span id="widget-url"></span>/static/widget.js" data-server="<span id="server-url"></span>"&gt;&lt;/script&gt;</pre>
+            <button onclick="copyCode()" style="position:absolute;top:10px;right:10px;background:#2d3748;color:#e2e8f0;border:1px solid #4a5568;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px">
+                <i class="bi bi-clipboard"></i> Salin
+            </button>
+        </div>
+
+        <div style="margin-top:18px;padding:14px 18px;background:#eff6ff;border-left:4px solid #3182ce;border-radius:0 6px 6px 0">
+            <strong><i class="bi bi-info-circle"></i> Catatan:</strong>
+            <ul style="margin:8px 0 0 18px;color:#374151;font-size:14px;line-height:1.8">
+                <li>Ganti URL <code>data-server</code> dengan alamat server produksi Anda jika di-deploy.</li>
+                <li>Widget secara otomatis membuat tombol chat melayang di pojok kanan bawah.</li>
+                <li>Tidak perlu CSS atau dependensi tambahan — semua sudah termasuk di dalam script.</li>
+                <li>CORS sudah diaktifkan, sehingga bisa dipanggil dari domain manapun.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- API Docs -->
+<div class="card" style="margin-bottom:24px">
+    <div class="card-header"><i class="bi bi-hdd-network"></i> Public API Reference</div>
+    <div class="card-body">
+
+        <!-- Health -->
+        <h3 style="font-size:15px;margin-bottom:8px"><span style="background:#22c55e;color:#fff;padding:3px 10px;border-radius:4px;font-size:12px;font-weight:700;margin-right:8px">GET</span> /api/v1/health</h3>
+        <p style="color:#6b7280;font-size:14px;margin-bottom:6px">Cek status server.</p>
+        <pre style="background:#f7f8fa;padding:12px 16px;border-radius:6px;font-size:13px;margin-bottom:24px">// Response
+{ "status": "ok" }</pre>
+
+        <!-- Chat -->
+        <h3 style="font-size:15px;margin-bottom:8px"><span style="background:#3b82f6;color:#fff;padding:3px 10px;border-radius:4px;font-size:12px;font-weight:700;margin-right:8px">POST</span> /api/v1/chat</h3>
+        <p style="color:#6b7280;font-size:14px;margin-bottom:6px">Kirim pertanyaan dan dapatkan jawaban dari RAG pipeline.</p>
+        <p style="color:#6b7280;font-size:13px;margin-bottom:12px"><strong>Content-Type:</strong> application/json &nbsp;|&nbsp; <strong>Auth:</strong> Tidak perlu (public endpoint)</p>
+
+        <table style="width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:14px">
+            <thead>
+                <tr style="background:#f7f8fa;text-align:left">
+                    <th style="padding:8px 12px;border:1px solid #e5e7eb">Parameter</th>
+                    <th style="padding:8px 12px;border:1px solid #e5e7eb">Tipe</th>
+                    <th style="padding:8px 12px;border:1px solid #e5e7eb">Wajib</th>
+                    <th style="padding:8px 12px;border:1px solid #e5e7eb">Keterangan</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb"><code>message</code></td>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb">string</td>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb">✅ Ya</td>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb">Pertanyaan atau pesan dari user</td>
+                </tr>
+                <tr>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb"><code>session_id</code></td>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb">string</td>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb">Opsional</td>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb">ID unik per sesi percakapan. Jika dikirim, chatbot akan <strong>mengingat konteks percakapan</strong> sebelumnya dalam sesi yang sama. Gunakan UUID atau string acak unik per user/session.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <pre style="background:#f7f8fa;padding:12px 16px;border-radius:6px;font-size:13px;margin-bottom:8px">// Request (minimal)
+{
+  "message": "Apa itu RAG?"
+}
+
+// Request (dengan memory percakapan)
+{
+  "message": "Berapa biaya kuliahnya?",
+  "session_id": "user-123-abc"
+}
+
+// Response
+{
+  "reply": "RAG (Retrieval-Augmented Generation) adalah ..."
+}</pre>
+
+        <div style="margin-top:18px;padding:14px 18px;background:#fefce8;border-left:4px solid #eab308;border-radius:0 6px 6px 0">
+            <strong><i class="bi bi-exclamation-triangle"></i> Penting:</strong>
+            <span style="font-size:14px;color:#374151">Pastikan dokumen sudah di-upload dan diproses sebelum menggunakan endpoint chat. Tanpa data di vectorstore, chatbot tidak bisa menjawab pertanyaan berbasis dokumen.</span>
+        </div>
+
+        <!-- HTTP Status Codes -->
+        <h3 style="font-size:15px;margin:28px 0 10px"><i class="bi bi-list-ol"></i> HTTP Status Codes</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:14px">
+            <thead>
+                <tr style="background:#f7f8fa;text-align:left">
+                    <th style="padding:8px 12px;border:1px solid #e5e7eb;width:90px">Status</th>
+                    <th style="padding:8px 12px;border:1px solid #e5e7eb">Arti</th>
+                    <th style="padding:8px 12px;border:1px solid #e5e7eb">Kapan terjadi</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb"><span style="background:#22c55e;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:700">200</span></td>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb">Berhasil</td>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb">Pertanyaan berhasil dijawab</td>
+                </tr>
+                <tr>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb"><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:700">400</span></td>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb">Bad Request</td>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb">Message kosong atau format JSON salah</td>
+                </tr>
+                <tr>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb"><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:700">500</span></td>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb">Server Error</td>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb">Gagal memproses pertanyaan (misal: vectorstore kosong)</td>
+                </tr>
+                <tr>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb"><span style="background:#ef4444;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:700">503</span></td>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb">Service Unavailable</td>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb">API key Gemini belum dikonfigurasi oleh admin</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Error Response Format -->
+        <h3 style="font-size:15px;margin:28px 0 10px"><i class="bi bi-exclamation-diamond"></i> Format Error Response</h3>
+        <p style="color:#6b7280;font-size:14px;margin-bottom:8px">Semua error mengembalikan JSON dengan field <code>error</code>:</p>
+        <pre style="background:#f7f8fa;padding:12px 16px;border-radius:6px;font-size:13px;margin-bottom:8px">// 400 — Message kosong
+{ "error": "Message tidak boleh kosong." }
+
+// 500 — Gagal proses
+{ "error": "Gagal memproses pertanyaan." }
+
+// 503 — Belum dikonfigurasi
+{ "error": "Service belum dikonfigurasi." }</pre>
+        <p style="color:#6b7280;font-size:13px;">Tip: selalu cek <code>response.ok</code> atau <code>status_code</code> sebelum membaca <code>reply</code>.</p>
+
+        <!-- Batasan -->
+        <h3 style="font-size:15px;margin:28px 0 10px"><i class="bi bi-speedometer2"></i> Batasan</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:13.5px">
+            <thead>
+                <tr style="background:#f7f8fa;text-align:left">
+                    <th style="padding:8px 12px;border:1px solid #e5e7eb">Item</th>
+                    <th style="padding:8px 12px;border:1px solid #e5e7eb">Nilai</th>
+                    <th style="padding:8px 12px;border:1px solid #e5e7eb">Keterangan</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb">Session timeout</td>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb"><strong>30 menit</strong></td>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb">Session otomatis dihapus setelah 30 menit tidak aktif</td>
+                </tr>
+                <tr>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb">Maks. history per session</td>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb"><strong>20 pesan</strong></td>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb">Pesan lama otomatis dihapus jika melebihi batas</td>
+                </tr>
+                <tr>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb">Rate limit</td>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb">Tidak ada</td>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb">Tergantung kuota Gemini API key yang dipakai</td>
+                </tr>
+                <tr>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb">Auth</td>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb">Tidak perlu</td>
+                    <td style="padding:8px 12px;border:1px solid #e5e7eb">Public endpoint, tidak butuh API key dari sisi pemanggil</td>
+                </tr>
+            </tbody>
+        </table>
+
+    </div>
+</div>
+
+<!-- cURL Example -->
+<div class="card" style="margin-bottom:24px">
+    <div class="card-header"><i class="bi bi-terminal"></i> Contoh cURL</div>
+    <div class="card-body">
+        <pre style="background:#1a202c;color:#e2e8f0;padding:18px 20px;border-radius:8px;font-size:13px;overflow-x:auto;line-height:1.6">curl -X POST <span id="curl-url"></span>/api/v1/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Apa jurusan yang tersedia?", "session_id": "user-123"}'</pre>
+    </div>
+</div>
+
+<!-- Integration Examples -->
+<div class="card" style="margin-bottom:24px">
+    <div class="card-header"><i class="bi bi-puzzle"></i> Contoh Integrasi Framework</div>
+    <div class="card-body">
+
+        <h3 style="font-size:15px;margin-bottom:10px"><i class="bi bi-filetype-php" style="color:#777BB3"></i> Laravel (PHP)</h3>
+        <pre style="background:#1a202c;color:#e2e8f0;padding:18px 20px;border-radius:8px;font-size:13px;overflow-x:auto;line-height:1.6;margin-bottom:20px">// Di controller Laravel kamu
+use Illuminate\Support\Facades\Http;
+
+public function chat(Request $request)
+{
+    $response = Http::post('<span class="integration-url"></span>/api/v1/chat', [
+        'message'    => $request->input('message'),
+        'session_id' => session()->getId(),  // otomatis unik per user
+    ]);
+
+    return response()->json([
+        'reply' => $response->json('reply'),
+    ]);
+}</pre>
+
+        <h3 style="font-size:15px;margin-bottom:10px"><i class="bi bi-filetype-js" style="color:#F7DF1E"></i> JavaScript (Fetch API)</h3>
+        <pre style="background:#1a202c;color:#e2e8f0;padding:18px 20px;border-radius:8px;font-size:13px;overflow-x:auto;line-height:1.6;margin-bottom:20px">// Bisa dipakai di React, Vue, Svelte, Next.js, dll.
+const SESSION_ID = crypto.randomUUID();
+
+async function chat(message) {
+  const res = await fetch('<span class="integration-url"></span>/api/v1/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message, session_id: SESSION_ID }),
+  });
+  const data = await res.json();
+  return data.reply;
+}</pre>
+
+        <h3 style="font-size:15px;margin-bottom:10px"><i class="bi bi-filetype-py" style="color:#3776AB"></i> Python (Requests)</h3>
+        <pre style="background:#1a202c;color:#e2e8f0;padding:18px 20px;border-radius:8px;font-size:13px;overflow-x:auto;line-height:1.6">import requests, uuid
+
+session_id = str(uuid.uuid4())
+
+response = requests.post('<span class="integration-url"></span>/api/v1/chat', json={
+    'message': 'Apa jurusan yang tersedia?',
+    'session_id': session_id,
+})
+print(response.json()['reply'])</pre>
+
+    </div>
+</div>
+
+<script>
+// Fill URLs dynamically based on current location
+(function() {
+    var base = window.location.origin;
+    document.getElementById('widget-url').textContent = base;
+    document.getElementById('server-url').textContent = base;
+    document.getElementById('curl-url').textContent = base;
+    var integrationUrls = document.querySelectorAll('.integration-url');
+    for (var i = 0; i < integrationUrls.length; i++) {
+        integrationUrls[i].textContent = base;
+    }
+})();
+
+function copyCode() {
+    var base = window.location.origin;
+    var code = '<script src="' + base + '/static/widget.js" data-server="' + base + '"><\/script>';
+    navigator.clipboard.writeText(code).then(function() {
+        alert('Kode embed berhasil disalin!');
+    });
+}
+</script>
+
+<!-- Load widget for preview -->
+<script src="/static/widget.js" data-server=""></script>
+{% endblock %}

@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% set active_page = "system-prompt" %}
+
+{% block title %}System Prompt — RAG Chatbot{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-cpu"></i> System Prompt</h1>
+    <p>Atur instruksi dan kepribadian chatbot. Perubahan langsung berlaku di percakapan berikutnya.</p>
+</div>
+
+<div id="promptAlert" style="display: none;"></div>
+
+<div class="card" style="margin-bottom: 20px;">
+    <div class="card-header">
+        <i class="bi bi-pencil-square"></i>
+        Edit System Prompt
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info" style="margin-bottom: 16px;">
+            <i class="bi bi-info-circle"></i>
+            <div>
+                <strong>Cara kerja:</strong> System prompt adalah instruksi yang diberikan ke AI sebelum menjawab pertanyaan pengguna. Di sinilah kamu menentukan nama, gaya bicara, dan aturan chatbot.<br>
+                <strong>Wajib ada:</strong> Placeholder <code>{context}</code> (isi dokumen) dan <code>{question}</code> (pertanyaan user) harus tetap ada di dalam prompt.
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="systemPrompt">Prompt Template</label>
+            <textarea class="form-control" id="systemPrompt" rows="16" style="font-family: 'Consolas', 'Courier New', monospace; font-size: 0.88rem; line-height: 1.7; resize: vertical;" placeholder="Memuat..."></textarea>
+            <p class="form-hint" id="promptHint">Memuat...</p>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <button class="btn btn-primary" id="btnSavePrompt" onclick="savePrompt()">
+                <i class="bi bi-save"></i>
+                Simpan Prompt
+            </button>
+            <button class="btn btn-outline" id="btnResetPrompt" onclick="resetPrompt()">
+                <i class="bi bi-arrow-counterclockwise"></i>
+                Reset ke Default
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-lightbulb"></i>
+        Tips Menulis System Prompt
+    </div>
+    <div class="card-body">
+        <div style="font-size: 0.9rem; line-height: 1.7; color: var(--color-text-secondary);">
+            <div class="tip-box">
+                <h4><i class="bi bi-lightbulb"></i> Tips Membuat Prompt</h4>
+                <ul>
+                    <li>Jelaskan persona chatbot (siapa dia, apa tugasnya).<br>
+                    Contoh: "Kamu adalah Chatbot Desa, asisten virtual resmi untuk layanan informasi pemerintahan Desa."</li>
+                    <li>Tetapkan batasan agar bot tidak menjawab di luar konteks dokumen.<br>
+                    Contoh: "Jawab HANYA berdasarkan informasi (Konteks) yang diberikan."</li>
+                    <li>Atur gaya bahasa (formal, santai, ramah).<br>
+                    Contoh: "Gunakan bahasa Indonesia yang baik, ramah, dan sopan."</li>
+                </ul>
+            </div>
+            <p><strong>4. Jangan hapus placeholder</strong><br>
+            <code>{context}</code> akan diisi otomatis dengan isi dokumen yang relevan.<br>
+            <code>{question}</code> akan diisi otomatis dengan pertanyaan pengguna.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', loadPrompt);
+
+    async function loadPrompt() {
+        try {
+            const resp = await fetch('/api/system-prompt');
+            const data = await resp.json();
+            document.getElementById('systemPrompt').value = data.prompt;
+            if (data.is_custom) {
+                document.getElementById('promptHint').innerHTML = '<i class="bi bi-pencil" style="color:var(--color-accent);"></i> Menggunakan prompt kustom';
+            } else {
+                document.getElementById('promptHint').innerHTML = '<i class="bi bi-check-circle" style="color:var(--color-success);"></i> Menggunakan prompt default';
+            }
+        } catch (err) {
+            showAlert('Gagal memuat system prompt.', 'error');
+        }
+    }
+
+    function setBtnLoading(btn, loading) {
+        if (loading) {
+            btn.disabled = true;
+            btn.dataset.origHtml = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px;"></span> Menyimpan...';
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = btn.dataset.origHtml;
+        }
+    }
+
+    async function savePrompt() {
+        var prompt = document.getElementById('systemPrompt').value.trim();
+        if (!prompt) {
+            showAlert('System prompt tidak boleh kosong.', 'error');
+            return;
+        }
+
+        var btn = document.getElementById('btnSavePrompt');
+        setBtnLoading(btn, true);
+
+        try {
+            const resp = await fetch('/api/system-prompt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: prompt }),
+            });
+            const data = await resp.json();
+
+            if (resp.ok) {
+                showAlert('System prompt berhasil disimpan.', 'success');
+                loadPrompt();
+            } else {
+                showAlert(data.error, 'error');
+            }
+        } catch (err) {
+            showAlert('Gagal menyimpan system prompt.', 'error');
+        } finally {
+            setBtnLoading(btn, false);
+        }
+    }
+
+    async function resetPrompt() {
+        if (!confirm('Reset system prompt ke default? Prompt kustom kamu akan dihapus.')) return;
+
+        var btn = document.getElementById('btnResetPrompt');
+        setBtnLoading(btn, true);
+
+        try {
+            const resp = await fetch('/api/system-prompt/reset', { method: 'POST' });
+            const data = await resp.json();
+
+            if (resp.ok) {
+                showAlert('System prompt berhasil direset ke default.', 'success');
+                loadPrompt();
+            } else {
+                showAlert(data.error, 'error');
+            }
+        } catch (err) {
+            showAlert('Gagal mereset system prompt.', 'error');
+        } finally {
+            setBtnLoading(btn, false);
+        }
+    }
+
+    function showAlert(message, type) {
+        var el = document.getElementById('promptAlert');
+        var icon = type === 'success' ? 'bi-check-circle' : 'bi-x-circle';
+        el.style.display = 'block';
+        el.innerHTML = '<div class="alert alert-' + type + '"><i class="bi ' + icon + '"></i> ' + escapeHtml(message) + '</div>';
+        setTimeout(function() { el.style.display = 'none'; }, 4000);
+    }
+
+    function escapeHtml(str) {
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+    }
+</script>
+{% endblock %}

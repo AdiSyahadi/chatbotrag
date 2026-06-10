@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Widget Debug Test</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        #debug-log { background: #111; color: #0f0; padding: 16px; border-radius: 8px; height: 300px; overflow-y: auto; font-size: 13px; line-height: 1.6; white-space: pre-wrap; margin-bottom: 20px; }
+        #reload-alert { background: #f00; color: #fff; padding: 16px; font-size: 18px; font-weight: bold; display: none; margin-bottom: 20px; border-radius: 8px; }
+        button { padding: 10px 20px; margin: 4px; font-size: 14px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h2>Widget Debug Test</h2>
+    <div id="reload-alert"></div>
+    <div id="debug-log"></div>
+
+    <h3>Manual Test Buttons:</h3>
+    <button id="btn-test1">Test 1: Toggle Open</button>
+    <button id="btn-test2">Test 2: Kirim "hi" (REAL API)</button>
+    <button id="btn-test4">Test 4: Kirim TANPA fetch (fake response)</button>
+    <button id="btn-test3">Test 3: Check Box State</button>
+
+    <script>
+        // ── Check if page was reloaded (sessionStorage survives reload) ──
+        var reloadAlert = document.getElementById('reload-alert');
+        var prevLogs = sessionStorage.getItem('widget-debug-logs');
+        if (prevLogs) {
+            reloadAlert.style.display = 'block';
+            reloadAlert.textContent = 'PAGE WAS RELOADED! Log sebelum reload tersimpan di bawah:';
+            sessionStorage.removeItem('widget-debug-logs');
+        }
+
+        // ── On-page logger (also saves to sessionStorage) ──
+        var logDiv = document.getElementById('debug-log');
+        if (prevLogs) {
+            logDiv.textContent = '=== LOG SEBELUM RELOAD ===\n' + prevLogs + '\n=== LOG SETELAH RELOAD ===\n';
+        }
+
+        function log(msg) {
+            var ts = new Date().toLocaleTimeString();
+            var line = '[' + ts + '] ' + msg;
+            logDiv.textContent += line + '\n';
+            logDiv.scrollTop = logDiv.scrollHeight;
+            // Save to sessionStorage on every log
+            sessionStorage.setItem('widget-debug-logs', logDiv.textContent);
+        }
+
+        log('Page loaded. URL: ' + location.href);
+        log('Page load count this session: ' + (parseInt(sessionStorage.getItem('load-count') || '0') + 1));
+        sessionStorage.setItem('load-count', parseInt(sessionStorage.getItem('load-count') || '0') + 1);
+
+        // Override console for widget logs
+        var _origLog = console.log;
+        var _origWarn = console.warn;
+        console.log = function() { _origLog.apply(console, arguments); log(Array.from(arguments).join(' ')); };
+        console.warn = function() { _origWarn.apply(console, arguments); log('WARN: ' + Array.from(arguments).join(' ')); };
+
+        // ── BLOCK PAGE RELOAD — this dialog will PROVE reload happens ──
+        window.onbeforeunload = function(e) {
+            log('!!! BEFOREUNLOAD FIRED — PAGE TRYING TO RELOAD/NAVIGATE !!!');
+            sessionStorage.setItem('widget-debug-logs', logDiv.textContent);
+            e.preventDefault();
+            e.returnValue = 'Page is trying to reload! This proves the bug.';
+            return 'Page is trying to reload! This proves the bug.';
+        };
+
+        // ── Intercept navigation methods ──
+        var origAssign = window.location.assign;
+        var origReplace = window.location.replace;
+        // Can't override location.href setter, but we watch for form submissions
+        document.addEventListener('submit', function(e) {
+            log('!!! FORM SUBMIT DETECTED! target=' + (e.target.id || e.target.tagName) + ' action=' + e.target.action);
+            e.preventDefault();
+        }, true);
+    </script>
+
+    <script id="rag-widget-script" src="widget.js" data-server="http://localhost:8000"></script>
+
+    <script>
+        // ── Manual test buttons ──
+        document.getElementById('btn-test1').addEventListener('click', function() {
+            var box = document.getElementById('rag-widget-box');
+            var toggle = document.getElementById('rag-widget-toggle');
+            log('--- TEST 1: Toggle Open ---');
+            log('Box exists: ' + !!box);
+            log('Toggle exists: ' + !!toggle);
+            if (toggle) toggle.click();
+            setTimeout(function() {
+                log('Box data-open AFTER: "' + box.getAttribute('data-open') + '"');
+                log('Box computed display AFTER: "' + getComputedStyle(box).display + '"');
+            }, 100);
+        });
+
+        document.getElementById('btn-test2').addEventListener('click', function() {
+            var box = document.getElementById('rag-widget-box');
+            var input = document.getElementById('rag-widget-input');
+            log('--- TEST 2: Send "hi" ---');
+            log('Box data-open: "' + box.getAttribute('data-open') + '"');
+            if (input) {
+                input.value = 'hi';
+                input.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true}));
+            }
+            // Monitor every 500ms
+            var checks = 0;
+            var interval = setInterval(function() {
+                checks++;
+                var d = box.getAttribute('data-open');
+                var c = getComputedStyle(box).display;
+                log('  [check ' + checks + '] data-open="' + d + '" computed="' + c + '"');
+                if (c !== 'flex') {
+                    log('  !!! BOX HIDDEN at check ' + checks + ' !!!');
+                    clearInterval(interval);
+                }
+                if (checks >= 60) { log('  Done. Box OK.'); clearInterval(interval); }
+            }, 500);
+        });
+
+        document.getElementById('btn-test3').addEventListener('click', function() {
+            var box = document.getElementById('rag-widget-box');
+            log('--- TEST 3: Box State ---');
+            if (!box) { log('Box NOT FOUND!'); return; }
+            log('data-open: "' + box.getAttribute('data-open') + '"');
+            log('computed display: "' + getComputedStyle(box).display + '"');
+            log('inDOM: ' + document.body.contains(box));
+        });
+
+        // ── TEST 4: Fake response (NO fetch, NO API call) ──
+        document.getElementById('btn-test4').addEventListener('click', function() {
+            var box = document.getElementById('rag-widget-box');
+            var msgContainer = document.getElementById('rag-widget-messages');
+            log('--- TEST 4: FAKE send (no fetch) ---');
+            log('Box data-open: "' + box.getAttribute('data-open') + '"');
+
+            // Simulate user message
+            var userDiv = document.createElement('div');
+            userDiv.className = 'rag-msg user';
+            userDiv.textContent = 'test tanpa fetch';
+            msgContainer.appendChild(userDiv);
+            msgContainer.scrollTop = msgContainer.scrollHeight;
+
+            // Simulate loading
+            var loadDiv = document.createElement('div');
+            loadDiv.className = 'rag-msg bot';
+            loadDiv.innerHTML = '<span class="rag-spinner"></span> Memproses...';
+            msgContainer.appendChild(loadDiv);
+
+            // Simulate delayed response (3 seconds, like real API)
+            setTimeout(function() {
+                log('[FAKE] removing loading...');
+                msgContainer.removeChild(loadDiv);
+                log('[FAKE] adding bot response...');
+                var botDiv = document.createElement('div');
+                botDiv.className = 'rag-msg bot';
+                botDiv.innerHTML = 'Ini respons <strong>palsu</strong> tanpa fetch. Jika box masih ada, berarti fetch yang bermasalah.';
+                msgContainer.appendChild(botDiv);
+                msgContainer.scrollTop = msgContainer.scrollHeight;
+                log('[FAKE] done, data-open=' + box.getAttribute('data-open'));
+            }, 3000);
+
+            // Monitor
+            var checks = 0;
+            var interval = setInterval(function() {
+                checks++;
+                var d = box.getAttribute('data-open');
+                var c = getComputedStyle(box).display;
+                log('  [fake-check ' + checks + '] data-open="' + d + '" computed="' + c + '"');
+                if (c !== 'flex') {
+                    log('  !!! BOX HIDDEN at fake-check ' + checks + ' !!!');
+                    clearInterval(interval);
+                }
+                if (checks >= 20) { log('  FAKE test done. Box stayed.'); clearInterval(interval); }
+            }, 500);
+        });
+
+        // ── Navigation diagnostics on load ──
+        try {
+            var navEntry = performance.getEntriesByType('navigation')[0];
+            if (navEntry) {
+                log('Navigation type: ' + navEntry.type);
+                log('Navigation redirectCount: ' + navEntry.redirectCount);
+            }
+        } catch(e) {}
+        log('document.referrer: "' + document.referrer + '"');
+    </script>
+</body>
+</html>

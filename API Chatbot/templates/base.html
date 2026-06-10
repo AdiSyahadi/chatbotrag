@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Chatbot Desa{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app-wrapper">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-brand">
+                <i class="bi bi-robot"></i>
+                <span>Chatbot Desa</span>
+            </div>
+            <ul class="sidebar-nav">
+                <li>
+                    <a href="/" class="{% if active_page == 'chat' %}active{% endif %}">
+                        <i class="bi bi-chat-dots"></i>
+                        <span>Chat</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/upload" class="{% if active_page == 'upload' %}active{% endif %}">
+                        <i class="bi bi-cloud-upload"></i>
+                        <span>Upload</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/documents" class="{% if active_page == 'documents' %}active{% endif %}">
+                        <i class="bi bi-folder2-open"></i>
+                        <span>Dokumen</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/settings" class="{% if active_page == 'settings' %}active{% endif %}">
+                        <i class="bi bi-gear"></i>
+                        <span>Pengaturan</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/system-prompt" class="{% if active_page == 'system-prompt' %}active{% endif %}">
+                        <i class="bi bi-cpu"></i>
+                        <span>System Prompt</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/embed" class="{% if active_page == 'embed' %}active{% endif %}">
+                        <i class="bi bi-code-square"></i>
+                        <span>Embed</span>
+                    </a>
+                </li>
+            </ul>
+            <div class="sidebar-footer">
+                DesaAI + DeepSeek v1.0
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

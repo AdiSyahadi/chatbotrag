@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% set active_page = "documents" %}
+
+{% block title %}Dokumen — RAG Chatbot{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-folder2-open"></i> Daftar Dokumen</h1>
+    <p>Semua dokumen yang telah diupload ke sistem.</p>
+</div>
+
+<div class="card">
+    <div class="card-body" id="docContainer">
+        <span class="loading-text"><span class="spinner"></span> Memuat dokumen...</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', loadDocuments);
+
+    async function loadDocuments() {
+        const container = document.getElementById('docContainer');
+
+        try {
+            const resp = await fetch('/api/documents');
+            const data = await resp.json();
+
+            if (data.documents.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="bi bi-folder"></i><p>Belum ada dokumen. Silakan upload terlebih dahulu.</p></div>';
+                return;
+            }
+
+            let html = '<div class="table-wrapper"><table>';
+            html += '<thead><tr><th>Nama File</th><th>Tipe</th><th>Ukuran</th><th>Upload</th><th>Status</th><th>Aksi</th></tr></thead>';
+            html += '<tbody>';
+
+            data.documents.forEach(function(doc) {
+                const size = formatSize(doc.file_size);
+                const status = doc.is_processed
+                    ? '<span class="badge badge-success"><i class="bi bi-check-circle"></i> Terproses</span>'
+                    : '<span class="badge badge-warning"><i class="bi bi-clock"></i> Belum diproses</span>';
+                const date = new Date(doc.uploaded_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+
+                html += '<tr>';
+                html += '<td><i class="bi bi-file-earmark-text" style="margin-right:6px;color:var(--color-accent);"></i>' + escapeHtml(doc.filename) + '</td>';
+                html += '<td>' + escapeHtml(doc.file_type) + '</td>';
+                html += '<td>' + size + '</td>';
+                html += '<td>' + date + '</td>';
+                html += '<td>' + status + '</td>';
+                html += '<td><button class="btn btn-danger btn-sm" onclick="deleteDoc(' + doc.id + ', \'' + escapeHtml(doc.filename) + '\')"><i class="bi bi-trash"></i></button></td>';
+                html += '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+
+        } catch (err) {
+            container.innerHTML = '<div class="alert alert-error"><i class="bi bi-x-circle"></i> Gagal memuat dokumen.</div>';
+        }
+    }
+
+    async function deleteDoc(id, filename) {
+        if (!confirm('Hapus dokumen "' + filename + '"?')) return;
+
+        try {
+            const resp = await fetch('/api/documents/' + id, { method: 'DELETE' });
+            const data = await resp.json();
+
+            if (resp.ok) {
+                loadDocuments();
+            } else {
+                alert(data.error || 'Gagal menghapus.');
+            }
+        } catch (err) {
+            alert('Gagal terhubung ke server.');
+        }
+    }
+
+    function formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+    }
+</script>
+{% endblock %}

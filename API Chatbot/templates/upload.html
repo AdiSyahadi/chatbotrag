@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% set active_page = "upload" %}
+
+{% block title %}Upload — RAG Chatbot{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-cloud-upload"></i> Upload Dokumen</h1>
+    <p>Upload file PDF, DOCX, atau TXT untuk diproses oleh sistem RAG.</p>
+</div>
+
+<div class="card" style="margin-bottom: 20px;">
+    <div class="card-body">
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+            <i class="bi bi-file-earmark-arrow-up"></i>
+            <p>Klik atau seret file ke sini</p>
+            <p class="hint">Format: PDF, DOCX, TXT</p>
+        </div>
+        <input type="file" id="fileInput" accept=".pdf,.docx,.txt" style="display: none;" onchange="uploadFile(this)">
+    </div>
+</div>
+
+<div id="uploadStatus" style="display: none;"></div>
+
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-cpu"></i>
+        Proses Embedding
+    </div>
+    <div class="card-body">
+        <p style="color: var(--color-text-secondary); font-size: 0.9rem; margin-bottom: 16px;">
+            Setelah upload, proses dokumen untuk membuat embedding dan menyimpan ke vector database.
+        </p>
+        <button class="btn btn-success" id="processBtn" onclick="processDocuments()">
+            <i class="bi bi-play-circle"></i>
+            Proses Semua Dokumen Baru
+        </button>
+        <div id="processStatus" style="margin-top: 12px; display: none;"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const uploadZone = document.getElementById('uploadZone');
+
+    uploadZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadZone.classList.add('dragover');
+    });
+
+    uploadZone.addEventListener('dragleave', function() {
+        uploadZone.classList.remove('dragover');
+    });
+
+    uploadZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+            uploadFileObj(e.dataTransfer.files[0]);
+        }
+    });
+
+    function uploadFile(input) {
+        if (input.files.length > 0) {
+            uploadFileObj(input.files[0]);
+        }
+    }
+
+    async function uploadFileObj(file) {
+        const statusEl = document.getElementById('uploadStatus');
+        statusEl.style.display = 'block';
+        statusEl.innerHTML = '<div class="alert alert-info"><i class="bi bi-arrow-repeat"></i> Mengupload ' + escapeHtml(file.name) + '...</div>';
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const resp = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await resp.json();
+
+            if (!resp.ok) {
+                statusEl.innerHTML = '<div class="alert alert-error"><i class="bi bi-x-circle"></i> ' + escapeHtml(data.error) + '</div>';
+            } else {
+                statusEl.innerHTML = '<div class="alert alert-success"><i class="bi bi-check-circle"></i> ' + escapeHtml(data.message) + '</div>';
+            }
+        } catch (err) {
+            statusEl.innerHTML = '<div class="alert alert-error"><i class="bi bi-x-circle"></i> Gagal terhubung ke server.</div>';
+        }
+
+        document.getElementById('fileInput').value = '';
+    }
+
+    async function processDocuments() {
+        const btn = document.getElementById('processBtn');
+        const statusEl = document.getElementById('processStatus');
+        btn.disabled = true;
+        statusEl.style.display = 'block';
+        statusEl.innerHTML = '<span class="loading-text"><span class="spinner"></span> Memproses dokumen...</span>';
+
+        try {
+            const resp = await fetch('/api/process-rag', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({}),
+            });
+            const data = await resp.json();
+
+            if (!resp.ok) {
+                statusEl.innerHTML = '<div class="alert alert-error"><i class="bi bi-x-circle"></i> ' + escapeHtml(data.error) + '</div>';
+            } else {
+                statusEl.innerHTML = '<div class="alert alert-success"><i class="bi bi-check-circle"></i> ' + escapeHtml(data.message) + '</div>';
+            }
+        } catch (err) {
+            statusEl.innerHTML = '<div class="alert alert-error"><i class="bi bi-x-circle"></i> Gagal terhubung ke server.</div>';
+        }
+
+        btn.disabled = false;
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+{% set active_page = "settings" %}
+
+{% block title %}Pengaturan — RAG Chatbot{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-gear"></i> Pengaturan</h1>
+    <p>Konfigurasi API key dan parameter RAG.</p>
+</div>
+
+<div id="settingsAlert" style="display: none;"></div>
+
+<div class="card" style="margin-bottom: 20px;">
+    <div class="card-header">
+        <i class="bi bi-key"></i>
+        API Key Gemini
+    </div>
+    <div class="card-body">
+        <div class="form-group">
+            <label for="apiKey">Google Gemini API Key</label>
+            <div style="display:flex;gap:0;">
+                <input type="password" class="form-control" id="apiKey" placeholder="Masukkan API key Anda..." autocomplete="off" style="border-top-right-radius:0;border-bottom-right-radius:0;">
+                <button type="button" class="btn btn-outline" id="toggleApiKey" onclick="toggleKeyVisibility()" style="border-top-left-radius:0;border-bottom-left-radius:0;padding:10px 14px;font-size:1.1rem;" title="Tampilkan/sembunyikan API key">
+                    <i class="bi bi-eye" id="toggleKeyIcon"></i>
+                </button>
+            </div>
+            <p class="form-hint" id="apiKeyHint">Status: memuat...</p>
+        </div>
+        <button class="btn btn-primary" id="btnSaveApiKey" onclick="saveApiKey()">
+            <i class="bi bi-save"></i>
+            Simpan API Key
+        </button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-sliders"></i>
+        Parameter RAG
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info" style="margin-bottom: 20px;">
+            <i class="bi bi-info-circle"></i>
+            <strong>Apa itu parameter RAG?</strong><br>
+            Sistem RAG (Retrieval Augmented Generation) bekerja dengan memotong dokumen menjadi potongan-potongan kecil (chunk), menyimpannya sebagai vektor, lalu mengambil potongan paling relevan saat menjawab pertanyaan. Parameter di bawah mengatur bagaimana proses ini berjalan.
+        </div>
+        <div class="form-group">
+            <label for="chunkSize">Chunk Size</label>
+            <input type="number" class="form-control" id="chunkSize" min="100" max="10000">
+            <p class="form-hint">
+                <strong>Apa itu:</strong> Ukuran maksimal tiap potongan teks (dalam karakter) saat dokumen dipecah.<br>
+                <strong>Kecil (200–500):</strong> Jawaban lebih presisi tapi bisa kehilangan konteks.<br>
+                <strong>Besar (1000–2000):</strong> Konteks lebih lengkap tapi bisa kurang fokus.<br>
+                <strong>Rekomendasi:</strong> 500–1000 untuk dokumen umum. Default: 1000
+            </p>
+        </div>
+        <div class="form-group">
+            <label for="chunkOverlap">Chunk Overlap</label>
+            <input type="number" class="form-control" id="chunkOverlap" min="0" max="5000">
+            <p class="form-hint">
+                <strong>Apa itu:</strong> Jumlah karakter yang tumpang tindih antar chunk. Berguna agar informasi di perbatasan chunk tidak terpotong.<br>
+                <strong>0:</strong> Tidak ada tumpang tindih, hemat storage tapi berisiko info terpotong.<br>
+                <strong>10–20% dari chunk size:</strong> Keseimbangan ideal.<br>
+                <strong>Rekomendasi:</strong> 100–200 untuk chunk size 1000. Default: 200
+            </p>
+        </div>
+        <div class="form-group">
+            <label for="topK">Top K (Jumlah Chunk Retrieval)</label>
+            <input type="number" class="form-control" id="topK" min="1" max="20">
+            <p class="form-hint">
+                <strong>Apa itu:</strong> Jumlah potongan dokumen paling relevan yang diambil untuk menjawab pertanyaan.<br>
+                <strong>Kecil (1–3):</strong> Jawaban lebih fokus, tapi bisa kurang info.<br>
+                <strong>Besar (5–10):</strong> Info lebih lengkap, tapi jawaban bisa kurang terarah dan lebih lambat.<br>
+                <strong>Rekomendasi:</strong> 3–5 untuk kebanyakan kasus. Default: 4
+            </p>
+        </div>
+        <button class="btn btn-primary" id="btnSaveParams" onclick="saveParams()">
+            <i class="bi bi-save"></i>
+            Simpan Parameter
+        </button>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 20px;">
+    <div class="card-header">
+        <i class="bi bi-whatsapp"></i>
+        WhatsApp API (Baileys)
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info" style="margin-bottom: 20px;">
+            <i class="bi bi-info-circle"></i>
+            <strong>Integrasi WhatsApp:</strong>
+            Masukkan kredensial SAAS WA API UnOfficial Anda. Pastikan mengatur webhook di dashboard WA mengarah ke <code>[URL_CHATBOT]/api/whatsapp/webhook</code>.
+        </div>
+        <div class="form-group">
+            <label for="waApiUrl">WA API Base URL</label>
+            <input type="text" class="form-control" id="waApiUrl" placeholder="http://localhost:3001/api/v1">
+            <p class="form-hint">Contoh: http://localhost:3001/api/v1</p>
+        </div>
+        <div class="form-group">
+            <label for="waApiKey">WA API Key</label>
+            <input type="password" class="form-control" id="waApiKey" placeholder="wa_xxxxx...">
+        </div>
+        <div class="form-group">
+            <label for="waInstanceId">WA Instance ID</label>
+            <input type="text" class="form-control" id="waInstanceId" placeholder="ID UUID Perangkat di API WA">
+            <p class="form-hint">Ambil ID ini dari dashboard WA API Anda pada menu Devices/Instances.</p>
+        </div>
+        <button class="btn btn-primary" id="btnSaveWa" onclick="saveWa()">
+            <i class="bi bi-save"></i>
+            Simpan WA Settings
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', loadSettings);
+
+    async function loadSettings() {
+        try {
+            const resp = await fetch('/api/settings');
+            const data = await resp.json();
+
+            if (data.gemini_api_key_set) {
+                document.getElementById('apiKeyHint').innerHTML = '<i class="bi bi-check-circle" style="color:var(--color-success);"></i> API key tersimpan: <code style="font-size:0.85rem;background:#f0f2f5;padding:2px 6px;border-radius:4px;letter-spacing:1px;">' + escapeHtml(data.gemini_api_key_preview) + '</code>';
+            } else {
+                document.getElementById('apiKeyHint').innerHTML = '<i class="bi bi-exclamation-circle" style="color:var(--color-danger);"></i> API key belum diatur';
+            }
+
+            document.getElementById('chunkSize').value = data.chunk_size;
+            document.getElementById('chunkOverlap').value = data.chunk_overlap;
+            document.getElementById('topK').value = data.top_k;
+            document.getElementById('waApiUrl').value = data.wa_api_url;
+            document.getElementById('waApiKey').value = data.wa_api_key;
+            document.getElementById('waInstanceId').value = data.wa_instance_id;
+
+        } catch (err) {
+            showAlert('Gagal memuat pengaturan.', 'error');
+        }
+    }
+
+    function toggleKeyVisibility() {
+        var input = document.getElementById('apiKey');
+        var icon = document.getElementById('toggleKeyIcon');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.className = 'bi bi-eye-slash';
+        } else {
+            input.type = 'password';
+            icon.className = 'bi bi-eye';
+        }
+    }
+
+    function setBtnLoading(btn, loading) {
+        if (loading) {
+            btn.disabled = true;
+            btn.dataset.origHtml = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px;"></span> Menyimpan...';
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = btn.dataset.origHtml;
+        }
+    }
+
+    async function saveApiKey() {
+        const apiKey = document.getElementById('apiKey').value.trim();
+        if (!apiKey) {
+            showAlert('API key tidak boleh kosong.', 'error');
+            return;
+        }
+
+        var btn = document.getElementById('btnSaveApiKey');
+        setBtnLoading(btn, true);
+
+        try {
+            const resp = await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gemini_api_key: apiKey }),
+            });
+            const data = await resp.json();
+
+            if (resp.ok) {
+                showAlert('API key berhasil disimpan dan terverifikasi.', 'success');
+                document.getElementById('apiKey').value = '';
+                loadSettings();
+            } else {
+                showAlert(data.error, 'error');
+            }
+        } catch (err) {
+            showAlert('Gagal menyimpan API key.', 'error');
+        } finally {
+            setBtnLoading(btn, false);
+        }
+    }
+
+    async function saveParams() {
+        const payload = {
+            chunk_size: parseInt(document.getElementById('chunkSize').value),
+            chunk_overlap: parseInt(document.getElementById('chunkOverlap').value),
+            top_k: parseInt(document.getElementById('topK').value),
+        };
+
+        var btn = document.getElementById('btnSaveParams');
+        setBtnLoading(btn, true);
+
+        try {
+            const resp = await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const data = await resp.json();
+
+            if (resp.ok) {
+                showAlert('Parameter berhasil disimpan.', 'success');
+            } else {
+                showAlert(data.error, 'error');
+            }
+        } catch (err) {
+            showAlert('Gagal menyimpan parameter.', 'error');
+        } finally {
+            setBtnLoading(btn, false);
+        }
+    }
+
+    async function saveWa() {
+        const payload = {
+            wa_api_url: document.getElementById('waApiUrl').value,
+            wa_api_key: document.getElementById('waApiKey').value,
+            wa_instance_id: document.getElementById('waInstanceId').value,
+        };
+        var btn = document.getElementById('btnSaveWa');
+        setBtnLoading(btn, true);
+
+        try {
+            const resp = await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const data = await resp.json();
+
+            if (resp.ok) {
+                showAlert('WhatsApp Settings berhasil disimpan.', 'success');
+            } else {
+                showAlert(data.error, 'error');
+            }
+        } catch (err) {
+            showAlert('Gagal menyimpan pengaturan WhatsApp.', 'error');
+        } finally {
+            setBtnLoading(btn, false);
+        }
+    }
+
+    function showAlert(message, type) {
+        const el = document.getElementById('settingsAlert');
+        const icon = type === 'success' ? 'bi-check-circle' : 'bi-x-circle';
+        el.style.display = 'block';
+        el.innerHTML = '<div class="alert alert-' + type + '"><i class="bi ' + icon + '"></i> ' + escapeHtml(message) + '</div>';
+        setTimeout(function() { el.style.display = 'none'; }, 4000);
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+    }
+</script>
+{% endblock %}
