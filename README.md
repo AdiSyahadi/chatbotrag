@@ -1,4 +1,4 @@
-# WhatsApp AI ChatBot (FastAPI + DeepSeek + RAG)
+# WhatsApp AI ChatBot (FastAPI + Gemini/DeepSeek + RAG)
 
 ChatBot cerdas untuk WhatsApp yang ditenagai oleh **DeepSeek AI** dan **Retrieval-Augmented Generation (RAG)** menggunakan ChromaDB. ChatBot ini dirancang khusus untuk berjalan berdampingan dengan **SAAS WA API**.
 
