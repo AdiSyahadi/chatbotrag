@@ -1,9 +1,9 @@
 # WhatsApp AI ChatBot (FastAPI + Gemini/DeepSeek + RAG)
 
-ChatBot cerdas untuk WhatsApp yang ditenagai oleh **DeepSeek AI** dan **Retrieval-Augmented Generation (RAG)** menggunakan ChromaDB. ChatBot ini dirancang khusus untuk berjalan berdampingan dengan **SAAS WA API**.
+ChatBot cerdas untuk WhatsApp yang ditenagai oleh **Gemini AI** / **DeepSeek AI** dan **Retrieval-Augmented Generation (RAG)** menggunakan ChromaDB. ChatBot ini dirancang khusus untuk berjalan berdampingan dengan **SAAS WA API**.
 
 ## Fitur Utama
-- **Integrasi DeepSeek AI**: Menggunakan model `deepseek-chat` via OpenAI SDK untuk respon yang cerdas.
+- **Integrasi Multi-LLM**: Mendukung penggunaan **Gemini AI** (google-genai) dan **DeepSeek AI** (via OpenAI SDK) untuk respon yang cerdas.
 - **RAG (Retrieval-Augmented Generation)**: Membaca dokumen PDF/DOCX yang di-upload dan menjawab pertanyaan spesifik berdasarkan pengetahuan di dalam dokumen tersebut.
 - **Local Embeddings**: Menggunakan model `all-MiniLM-L6-v2` dari HuggingFace yang berjalan 100% lokal secara gratis dan cepat (tidak memotong kuota API).
 - **Integrasi Webhook SAAS WA API**: Menerima _webhook_ langsung dari instance SAAS WA API dan membalas pesan secara otomatis.
@@ -48,7 +48,7 @@ _(Server akan berjalan di port `8000`)_
 1. Buka browser dan pergi ke **Dashboard ChatBot**: [http://localhost:8000](http://localhost:8000)
 2. Buka menu **Documents** untuk mengupload dokumen PDF/DOCX yang ingin digunakan sebagai bahan hafalan bot (RAG).
 3. Buka menu **Pengaturan Bot** dan pastikan Anda mengisi:
-   - **Gemini / DeepSeek API Key**: Masukkan API Key dari DeepSeek.
+   - **Gemini / DeepSeek API Key**: Masukkan API Key dari Gemini (Google AI Studio) atau DeepSeek.
    - **WA API URL**: Contoh `http://localhost:3001/api/v1`
    - **WA API Key**: API Key dari organisasi SAAS WA API Anda.
    - **WA Instance ID**: ID dari instance WA yang sudah terkoneksi.
