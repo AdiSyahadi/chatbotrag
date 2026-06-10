@@ -1,83 +1,123 @@
 import time
-import threading
-from collections import defaultdict
 import asyncio
+from typing import List, Dict
+from app.config import get_db_connection
 from app.modules.wa_sender import send_whatsapp_message
 
-# In-memory session store: {session_id: {"messages": [...], "last_active": timestamp, "warning_sent": bool}}
-_sessions: dict[str, dict] = {}
-_lock = threading.Lock()
-
-# Session expires after 3 minutes (180 seconds)
 SESSION_TTL_SECONDS = 180
 WARNING_SECONDS = 120
-# Maximum messages stored per session (pairs of user+assistant)
 MAX_MESSAGES_PER_SESSION = 20
 
-async def monitor_sessions():
-    """Background task to monitor session age and send warnings or delete them."""
-    warning_text = "Apakah informasi yang saya berikan sudah cukup? Karena tidak ada balasan, percakapan ini akan saya tutup sebentar lagi. Silakan kirim pesan baru jika masih membutuhkan bantuan."
-    while True:
-        try:
-            now = time.time()
-            to_delete = []
-            to_warn = []
-            
-            with _lock:
-                for sid, session in _sessions.items():
-                    age = now - session["last_active"]
-                    if age > SESSION_TTL_SECONDS:
-                        to_delete.append(sid)
-                    elif age >= WARNING_SECONDS and not session.get("warning_sent"):
-                        to_warn.append(sid)
-                        session["warning_sent"] = True
-                        
-                for sid in to_delete:
-                    del _sessions[sid]
-                    
-            for sid in to_warn:
-                # Send the warning message
-                send_whatsapp_message(sid, warning_text)
-                
-        except Exception as e:
-            print("Error in monitor_sessions:", e)
-            
-        await asyncio.sleep(10)
+# ── Session State Management ──
 
-def _cleanup_expired():
-    """Remove sessions that have been inactive longer than TTL."""
-    now = time.time()
-    expired = [sid for sid, s in _sessions.items() if now - s["last_active"] > SESSION_TTL_SECONDS]
-    for sid in expired:
-        del _sessions[sid]
+def get_session(session_id: str) -> dict:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM sessions WHERE session_id = ?", (session_id,))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return dict(row)
+    return None
 
+def create_or_update_session(session_id: str, status: str = "BOT_HANDLING"):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO sessions (session_id, status)
+        VALUES (?, ?)
+        ON CONFLICT(session_id) DO UPDATE SET 
+            status=excluded.status, 
+            last_activity=CURRENT_TIMESTAMP
+    """, (session_id, status))
+    conn.commit()
+    conn.close()
 
-def get_history(session_id: str) -> list[dict]:
-    """Get conversation history for a session. Returns list of {"role": "user"|"assistant", "content": str}."""
-    with _lock:
-        _cleanup_expired()
-        session = _sessions.get(session_id)
-        if not session:
-            return []
-        return list(session["messages"])
+def set_session_status(session_id: str, status: str):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO sessions (session_id, status)
+        VALUES (?, ?)
+        ON CONFLICT(session_id) DO UPDATE SET 
+            status=excluded.status, 
+            last_activity=CURRENT_TIMESTAMP
+    """, (session_id, status))
+    conn.commit()
+    conn.close()
 
+def update_last_activity(session_id: str):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE sessions SET last_activity=CURRENT_TIMESTAMP WHERE session_id = ?", (session_id,))
+    conn.commit()
+    conn.close()
+
+# ── Message History ──
+
+def get_history(session_id: str) -> List[Dict]:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT sender_type, text 
+        FROM messages 
+        WHERE session_id = ? 
+        ORDER BY timestamp ASC
+    """, (session_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    
+    history = []
+    for r in rows:
+        # map db sender_type ('USER', 'BOT', 'ADMIN') to prompt roles
+        role = "user" if r["sender_type"] == "USER" else "assistant"
+        history.append({"role": role, "content": r["text"]})
+    
+    # Trim to MAX
+    return history[-MAX_MESSAGES_PER_SESSION:]
+
+def get_all_messages(session_id: str) -> List[Dict]:
+    # Digunakan oleh Admin Dashboard
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT id, sender_type, text, timestamp 
+        FROM messages 
+        WHERE session_id = ? 
+        ORDER BY timestamp ASC
+    """, (session_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
 
 def add_message(session_id: str, role: str, content: str):
-    """Add a message to a session's history."""
-    with _lock:
-        if session_id not in _sessions:
-            _sessions[session_id] = {"messages": [], "last_active": time.time(), "warning_sent": False}
-        session = _sessions[session_id]
-        session["messages"].append({"role": role, "content": content})
-        session["last_active"] = time.time()
-        session["warning_sent"] = False  # Reset warning status on new activity
-        # Trim oldest messages if over limit
-        if len(session["messages"]) > MAX_MESSAGES_PER_SESSION:
-            session["messages"] = session["messages"][-MAX_MESSAGES_PER_SESSION:]
+    # role can be "user", "assistant" (bot), "admin", "system"
+    sender_type = "USER"
+    if role == "assistant" or role == "bot":
+        sender_type = "BOT"
+    elif role == "admin":
+        sender_type = "ADMIN"
+    elif role == "system":
+        sender_type = "SYSTEM"
+        
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Pastikan session ada
+    cursor.execute("INSERT OR IGNORE INTO sessions (session_id) VALUES (?)", (session_id,))
+    
+    cursor.execute("""
+        INSERT INTO messages (session_id, sender_type, text)
+        VALUES (?, ?, ?)
+    """, (session_id, sender_type, content))
+    
+    cursor.execute("UPDATE sessions SET last_activity=CURRENT_TIMESTAMP WHERE session_id = ?", (session_id,))
+    
+    conn.commit()
+    conn.close()
 
 
-def format_history_for_prompt(history: list[dict]) -> str:
-    """Format conversation history into a string for insertion into the prompt."""
+def format_history_for_prompt(history: List[Dict]) -> str:
     if not history:
         return ""
     lines = []
@@ -85,3 +125,58 @@ def format_history_for_prompt(history: list[dict]) -> str:
         prefix = "User" if msg["role"] == "user" else "Asisten"
         lines.append(f"{prefix}: {msg['content']}")
     return "\n".join(lines)
+
+
+# ── Frustration & Intent Detection ──
+
+def detect_handoff_intent(text: str, current_fallback_count: int = 0) -> bool:
+    """
+    Returns True jika pesan mengindikasikan ingin bicara dengan manusia,
+    atau jika RAG sudah gagal (fallback) terlalu sering (misal 3x).
+    """
+    text_lower = text.lower()
+    # Menggunakan frasa yang lebih spesifik untuk menghindari false-positive seperti "halo admin"
+    keywords = [
+        "bicara dengan admin", "hubungkan ke admin", "panggil admin", "mana admin", 
+        "butuh admin", "bantuan admin", "tanya admin", "chat dengan admin",
+        "bicara dengan manusia", "bukan bot", "butuh manusia", "panggil manusia",
+        "customer service", "bantuan langsung", "kecewa", "kurang puas", "nggak nyambung", "bot bodoh", "bot goblok"
+    ]
+    
+    for kw in keywords:
+        if kw in text_lower:
+            # Pengecualian khusus jika ternyata hanya sapaan, meski jarang dengan frasa di atas
+            return True
+            
+    if current_fallback_count >= 3:
+        return True
+        
+    return False
+
+
+# ── Background Task (Optional for WhatsApp TTL) ──
+
+async def monitor_sessions():
+    """Background task to cleanup idle sessions or send warnings."""
+    # (Diperbarui agar menggunakan DB jika diperlukan, sementara kita biarkan sederhana)
+    while True:
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            # Hapus sesi yang lebih dari TTL (hati-hati, ini bisa menghapus riwayat)
+            # Untuk skenario Handoff, kita TIDAK otomatis menghapus riwayat, 
+            # melainkan biarkan saja, atau set status ke EXPIRED.
+            cursor.execute("SELECT session_id FROM sessions WHERE strftime('%s', 'now') - strftime('%s', last_activity) > ?", (SESSION_TTL_SECONDS,))
+            expired_sessions = cursor.fetchall()
+            
+            # Jika ingin menghapus:
+            # for s in expired_sessions:
+            #    cursor.execute("DELETE FROM messages WHERE session_id=?", (s['session_id'],))
+            #    cursor.execute("DELETE FROM sessions WHERE session_id=?", (s['session_id'],))
+            
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            print("Error in monitor_sessions DB:", e)
+        
+        await asyncio.sleep(60)

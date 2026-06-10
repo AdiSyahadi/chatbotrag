@@ -46,3 +46,11 @@ node_modules/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Chatbot data and large files
+*.mp4
+*.db
+*.sqlite3
+API Chatbot/vectorstore/
+API Chatbot/uploads/
+landing_page/aturankerja/

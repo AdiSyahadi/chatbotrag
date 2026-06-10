@@ -1,11 +1,17 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+<!DOCTYPE html>
+<html lang="id">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tanya PMB — Informasi Penerimaan Mahasiswa Baru</title>
+    <title>Desa Selacau — Pelayanan Administrasi Kependudukan</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=20">
 </head>
 <body>
 
@@ -13,12 +19,18 @@
     <nav class="navbar">
         <div class="container nav-inner">
             <a href="#" class="nav-brand">
-                <i class="bi bi-mortarboard"></i> Tanya PMB
+                <i class="bi bi-tree"></i>
+                <div class="brand-text">
+                    <span class="brand-subtitle">DESA</span>
+                    <span class="brand-title">SELACAU</span>
+                    <span class="brand-footer">KAB. BANDUNG BARAT</span>
+                </div>
             </a>
             <ul class="nav-links">
-                <li><a href="#fitur">Fitur</a></li>
-                <li><a href="#cara-kerja">Cara Kerja</a></li>
+                <li><a href="#fitur">Layanan</a></li>
+                <li><a href="#cara-kerja">Prosedur</a></li>
                 <li><a href="#faq">FAQ</a></li>
+                <li><a href="#hubungi" class="contact-link">HUBUNGI KAMI</a></li>
             </ul>
             <button class="nav-toggle" id="nav-toggle" aria-label="Menu">
                 <i class="bi bi-list"></i>
@@ -28,34 +40,39 @@
 
     <!-- ═══ Hero ═══ -->
     <section class="hero">
+        <!-- Video Background -->
+        <video class="hero-video" autoplay loop muted playsinline>
+            <source src="230882.mp4" type="video/mp4">
+        </video>
+        
         <div class="container hero-inner">
             <div class="hero-text">
-                <span class="badge"><i class="bi bi-stars"></i> AI-Powered</span>
-                <h1>Semua Informasi PMB, Cukup Tanya di Sini</h1>
-                <p><strong>Tanya PMB</strong> menggunakan teknologi <strong>RAG (Retrieval-Augmented Generation)</strong> dan <strong>Google Gemini</strong> untuk menjawab semua pertanyaan seputar Penerimaan Mahasiswa Baru secara cepat dan akurat.</p>
+                <h1>
+                    PELAYANAN<br>
+                    ADMINISTRASI<br>
+                    DESA SELACAU<sup class="reg-mark">&reg;</sup>
+                </h1>
+                <p class="hero-subtitle">/ Kami melayani sepenuh hati /</p>
                 <div class="hero-actions">
                     <button class="btn btn-primary" id="btn-tanya-sekarang">
-                        <i class="bi bi-chat-dots"></i> Tanya Sekarang
+                        MULAI
                     </button>
-                    <a href="#cara-kerja" class="btn btn-outline">
-                        <i class="bi bi-arrow-down-circle"></i> Pelajari
-                    </a>
                 </div>
             </div>
             <div class="hero-visual">
-                <div class="hero-card">
-                    <div class="hero-card-header">
-                        <span class="dot red"></span>
-                        <span class="dot yellow"></span>
-                        <span class="dot green"></span>
+                <div class="elegant-card">
+                    <div class="elegant-tags">
+                        <span class="tag">Otomatis</span>
+                        <span class="tag">Cepat</span>
+                        <span class="tag dark">24/7</span>
                     </div>
-                    <div class="hero-card-body">
-                        <div class="chat-line user">Kapan pendaftaran PMB dibuka?</div>
-                        <div class="chat-line bot">
-                            Pendaftaran <strong>PMB jalur reguler</strong> dibuka mulai bulan Maret hingga Juli. Untuk jalur prestasi, pendaftaran dibuka lebih awal mulai Januari...
-                        </div>
-                        <div class="typing-indicator">
-                            <span></span><span></span><span></span>
+                    <h3>Informasi surat &<br>persyaratan</h3>
+                    <p class="elegant-card-desc">Dari SKTM hingga Pengantar Nikah.</p>
+                    
+                    <div class="elegant-chat-box">
+                        <div class="elegant-chat-line user">Apa saja syarat SKTM?</div>
+                        <div class="elegant-chat-line bot">
+                            Bawa Pengantar RT/RW, fotokopi KK & KTP ke balai desa.
                         </div>
                     </div>
                 </div>
@@ -67,51 +84,51 @@
     <section class="section" id="fitur">
         <div class="container">
             <div class="section-header">
-                <span class="badge"><i class="bi bi-gem"></i> Fitur Utama</span>
-                <h2>Kenapa Menggunakan Tanya PMB?</h2>
+                <span class="badge"><i class="bi bi-gem"></i> Keunggulan Layanan</span>
+                <h2>Kemudahan Akses Informasi Desa</h2>
             </div>
             <div class="features-grid">
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <i class="bi bi-search"></i>
+                        <i class="bi bi-file-earmark-text"></i>
                     </div>
-                    <h3>Pencarian Cerdas</h3>
-                    <p>AI memahami <em>makna</em> pertanyaan Anda dan mencari jawaban paling relevan dari seluruh dokumen PMB.</p>
+                    <h3>Syarat Dokumen Jelas</h3>
+                    <p>Temukan syarat lengkap pembuatan berbagai surat keterangan tanpa perlu bolak-balik ke kantor desa.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">
                         <i class="bi bi-clock-history"></i>
                     </div>
-                    <h3>Tersedia 24/7</h3>
-                    <p>Tidak perlu menunggu jam kerja. Tanyakan informasi PMB kapan saja, chatbot selalu siap menjawab.</p>
+                    <h3>Akses 24 Jam</h3>
+                    <p>Sistem chatbot tetap melayani pertanyaan Anda kapan saja, bahkan di luar jam operasional desa.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <i class="bi bi-lightning-charge"></i>
+                        <i class="bi bi-map"></i>
                     </div>
-                    <h3>Jawaban Instan</h3>
-                    <p>Didukung oleh Google Gemini, jawaban dihasilkan dalam hitungan detik dengan akurasi tinggi.</p>
+                    <h3>Profil & Geografis</h3>
+                    <p>Ketahui lebih dalam mengenai sejarah, peta wilayah, dan data demografi Desa Selacau Batujajar.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">
                         <i class="bi bi-shield-check"></i>
                     </div>
-                    <h3>Berbasis Dokumen Resmi</h3>
-                    <p>Jawaban selalu berdasarkan dokumen PMB resmi yang telah diupload, bukan informasi dari sumber luar.</p>
+                    <h3>Berdasarkan Aturan Resmi</h3>
+                    <p>Jawaban ditarik dari panduan standar operasional pelayanan yang disahkan oleh Kepala Desa.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <i class="bi bi-journal-bookmark"></i>
+                        <i class="bi bi-cash-coin"></i>
                     </div>
-                    <h3>Info Lengkap</h3>
-                    <p>Jadwal, persyaratan, biaya, jalur masuk, program studi — semua informasi PMB dalam satu tempat.</p>
+                    <h3>Transparansi Biaya</h3>
+                    <p>Pengurusan surat dasar tingkat desa tidak dipungut retribusi apa pun alias 100% gratis.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <i class="bi bi-translate"></i>
+                        <i class="bi bi-whatsapp"></i>
                     </div>
-                    <h3>Bilingual</h3>
-                    <p>Mendukung pertanyaan dalam Bahasa Indonesia maupun Inggris secara otomatis.</p>
+                    <h3>Terkoneksi WhatsApp</h3>
+                    <p>Sistem ini sudah terintegrasi dengan WhatsApp, sehingga warga bisa bertanya semudah mengirim pesan.</p>
                 </div>
             </div>
         </div>
@@ -121,31 +138,31 @@
     <section class="section section-alt" id="cara-kerja">
         <div class="container">
             <div class="section-header">
-                <span class="badge"><i class="bi bi-gear-wide-connected"></i> Cara Kerja</span>
-                <h2>Dari Dokumen PMB Menjadi Jawaban</h2>
+                <span class="badge"><i class="bi bi-gear-wide-connected"></i> Prosedur Umum</span>
+                <h2>Alur Pelayanan Kependudukan</h2>
             </div>
             <div class="steps">
                 <div class="step">
                     <div class="step-number">1</div>
                     <div class="step-content">
-                        <h3>Upload Dokumen PMB</h3>
-                        <p>Admin mengupload dokumen resmi PMB (PDF, DOCX, TXT) ke dashboard sistem.</p>
+                        <h3>Tanya ChatBot</h3>
+                        <p>Kirim pertanyaan mengenai syarat pembuatan surat yang Anda butuhkan (SKTM, SKU, dll) via ChatBot ini.</p>
                     </div>
                 </div>
                 <div class="step-connector"></div>
                 <div class="step">
                     <div class="step-number">2</div>
                     <div class="step-content">
-                        <h3>Proses & Indexing</h3>
-                        <p>Dokumen dipecah menjadi chunk, diubah menjadi embedding vektor, dan disimpan di ChromaDB.</p>
+                        <h3>Siapkan Berkas & Pengantar</h3>
+                        <p>Siapkan KTP/KK lalu datangi Ketua RT & RW setempat untuk meminta Surat Pengantar resmi.</p>
                     </div>
                 </div>
                 <div class="step-connector"></div>
                 <div class="step">
                     <div class="step-number">3</div>
                     <div class="step-content">
-                        <h3>Tanya via Chatbot</h3>
-                        <p>Calon mahasiswa bertanya lewat chatbot — sistem mencari info paling relevan dan menjawab via Gemini.</p>
+                        <h3>Datang ke Kantor Desa</h3>
+                        <p>Serahkan seluruh berkas ke Kasi Pelayanan di Kantor Desa untuk diproses dan ditandatangani Kepala Desa.</p>
                     </div>
                 </div>
             </div>
@@ -161,24 +178,24 @@
             </div>
             <div class="faq-list">
                 <details class="faq-item">
-                    <summary><i class="bi bi-patch-question"></i> Apa itu Tanya PMB?</summary>
-                    <p>Tanya PMB adalah chatbot berbasis AI yang menjawab pertanyaan seputar Penerimaan Mahasiswa Baru. Sistem ini menggunakan teknologi RAG (Retrieval-Augmented Generation) yang menggabungkan pencarian dokumen dengan Google Gemini untuk menghasilkan jawaban akurat berdasarkan dokumen resmi.</p>
+                    <summary><i class="bi bi-patch-question"></i> Jam berapa Kantor Desa buka?</summary>
+                    <p>Pelayanan Kantor Desa Selacau buka dari hari Senin hingga Kamis (08:00 - 15:00) dan Jumat (08:00 - 15:30). Hari Sabtu, Minggu, dan Libur Nasional tutup.</p>
                 </details>
                 <details class="faq-item">
-                    <summary><i class="bi bi-patch-question"></i> Informasi apa saja yang bisa ditanyakan?</summary>
-                    <p>Anda bisa bertanya tentang <strong>jadwal pendaftaran</strong>, <strong>persyaratan masuk</strong>, <strong>jalur penerimaan</strong>, <strong>biaya kuliah</strong>, <strong>program studi</strong>, <strong>beasiswa</strong>, dan informasi PMB lainnya yang tersedia dalam dokumen resmi.</p>
+                    <summary><i class="bi bi-patch-question"></i> Apakah ada biaya untuk mengurus surat?</summary>
+                    <p>Tidak ada. Pengurusan surat keterangan dasar di tingkat desa seperti SKTM, Domisili, dan SKU tidak dipungut biaya retribusi apa pun (100% Gratis).</p>
                 </details>
                 <details class="faq-item">
-                    <summary><i class="bi bi-patch-question"></i> Apakah jawaban chatbot bisa dipercaya?</summary>
-                    <p>Ya, jawaban selalu berbasis dokumen resmi PMB yang telah diupload oleh admin. Chatbot tidak menghasilkan informasi dari sumber luar atau mengarang jawaban.</p>
+                    <summary><i class="bi bi-patch-question"></i> Di mana lokasi Desa Selacau?</summary>
+                    <p>Desa Selacau berlokasi di koridor selatan-barat Kecamatan Batujajar, Kabupaten Bandung Barat. Di kawasan ini juga terdapat Gunung Selacau.</p>
                 </details>
                 <details class="faq-item">
-                    <summary><i class="bi bi-patch-question"></i> Apakah bisa diakses kapan saja?</summary>
-                    <p>Ya, chatbot tersedia 24/7. Anda bisa bertanya kapan saja tanpa menunggu jam kerja kampus.</p>
+                    <summary><i class="bi bi-patch-question"></i> Kenapa harus ada Pengantar RT dan RW?</summary>
+                    <p>Surat Pengantar dari Ketua RT dan RW adalah bukti valid bahwa Anda memang warga yang berdomisili di lingkungan tersebut sesuai dengan pengamatan pengurus lingkungan.</p>
                 </details>
                 <details class="faq-item">
-                    <summary><i class="bi bi-patch-question"></i> Bagaimana jika pertanyaan saya tidak terjawab?</summary>
-                    <p>Jika informasi belum tersedia di database, chatbot akan memberitahu bahwa data belum ada. Anda bisa menghubungi panitia PMB secara langsung untuk pertanyaan yang belum tercakup.</p>
+                    <summary><i class="bi bi-patch-question"></i> Apa itu formulir N1, N2, N4?</summary>
+                    <p>Itu adalah dokumen pengantar wajib yang diterbitkan oleh Desa sebagai syarat mendaftarkan pernikahan Anda ke Kantor Urusan Agama (KUA).</p>
                 </details>
             </div>
         </div>
@@ -188,13 +205,24 @@
     <footer class="footer">
         <div class="container footer-inner">
             <div class="footer-brand">
-                <i class="bi bi-mortarboard"></i> Tanya PMB
+                <i class="bi bi-tree"></i> Selacau Bot
             </div>
-            <p>Sistem Informasi PMB Cerdas — Didukung oleh AI.</p>
+            <p>Pusat Informasi & Pelayanan Warga Desa Selacau, Batujajar.</p>
         </div>
     </footer>
 
     <script src="app.js"></script>
-    <script id="rag-widget-script" src="widget.js"></script>
+    <script id="rag-widget-script" src="widget.js?v=9" data-server="http://localhost:8000"></script>
+    <script>
+        // Sticky Navbar Effect
+        window.addEventListener('scroll', () => {
+            const navbar = document.querySelector('.navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+    </script>
 </body>
 </html>

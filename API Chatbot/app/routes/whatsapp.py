@@ -3,7 +3,8 @@ import traceback
 from fastapi import APIRouter, Request, BackgroundTasks
 from app.config import get_setting, get_api_key
 from app.modules.rag_chain import build_rag_chain, build_question_with_history
-from app.modules.conversation import get_history, add_message
+from app.modules.rag_chain import build_rag_chain, build_question_with_history
+from app.modules.conversation import get_history, add_message, get_session, set_session_status, detect_handoff_intent
 from app.modules.logger import chat_logger
 
 router = APIRouter()
@@ -48,25 +49,42 @@ def process_whatsapp_message(payload: dict):
             print("API key is not configured.")
             answer = "Maaf, API Key belum diatur di sistem."
         else:
-            # Call RAG to get the answer
-            try:
-                # 1. Fetch history for this specific sender
-                history = get_history(sender_log_str)
-                # 2. Inject history into the question content
-                content_with_history = build_question_with_history(content, history)
-                
-                rag_chain, retriever = build_rag_chain()
-                # Get answer from chain using context-injected question
-                answer = rag_chain.invoke(content_with_history)
-                
-                # 3. Save memory for the next conversation
+            # ── State Management & Router AI Check ──
+            session = get_session(sender_log_str)
+            status = session["status"] if session else "BOT_HANDLING"
+            
+            if status == "WAITING_FOR_AGENT":
                 add_message(sender_log_str, "user", content)
-                add_message(sender_log_str, "assistant", answer)
+                answer = "Mohon tunggu sebentar, petugas desa kami akan segera membalas pesan Anda."
+            elif status == "AGENT_HANDLING":
+                add_message(sender_log_str, "user", content)
+                # Jangan membalas apa-apa jika agen yang handle
+                return
+            elif detect_handoff_intent(content):
+                set_session_status(sender_log_str, "WAITING_FOR_AGENT")
+                add_message(sender_log_str, "user", content)
+                answer = "Sepertinya Anda membutuhkan bantuan lebih lanjut. Saya telah meneruskan obrolan ini ke petugas/admin desa. Mohon tunggu sebentar ya."
+                add_message(sender_log_str, "bot", answer)
+            else:
+                # Call RAG to get the answer
+                try:
+                    # 1. Fetch history for this specific sender
+                    history = get_history(sender_log_str)
+                    # 2. Inject history into the question content
+                    content_with_history = build_question_with_history(content, history)
+                    
+                    rag_chain, retriever = build_rag_chain()
+                    # Get answer from chain using context-injected question
+                    answer = rag_chain.invoke(content_with_history)
+                    
+                    # 3. Save memory for the next conversation
+                    add_message(sender_log_str, "user", content)
+                    add_message(sender_log_str, "assistant", answer)
                 
-            except Exception as e:
-                print("Error in RAG:", e)
-                traceback.print_exc()
-                answer = "Terjadi kesalahan saat memproses pertanyaan Anda di server."
+                except Exception as e:
+                    print("Error in RAG:", e)
+                    traceback.print_exc()
+                    answer = "Terjadi kesalahan saat memproses pertanyaan Anda di server."
 
         # PRIORITAS UTAMA: Gunakan nomor HP asli jika tersedia dari webhook (menghindari masalah LID)
         # Fallback ke chat_jid atau extract number

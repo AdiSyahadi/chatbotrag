@@ -9,7 +9,7 @@ import asyncio
 from app.modules.conversation import monitor_sessions
 
 from app.config import init_database, TEMPLATES_DIR, STATIC_DIR
-from app.routes import upload, process_rag, ask, documents, settings, system_prompt, whatsapp
+from app.routes import upload, process_rag, ask, documents, settings, system_prompt, whatsapp, admin_api
 from app.routes import public_api
 
 # Initialize database
@@ -47,6 +47,7 @@ app.include_router(settings.router, prefix="/api", tags=["Settings"])
 app.include_router(system_prompt.router, prefix="/api", tags=["System Prompt"])
 app.include_router(whatsapp.router, prefix="/api/whatsapp", tags=["WhatsApp"])
 app.include_router(public_api.router, prefix="/api/v1", tags=["Public API"])
+app.include_router(admin_api.router, prefix="/api/admin", tags=["Admin Handoff"])
 app.include_router(logs.router, tags=["logs"])
 
 
@@ -80,3 +81,7 @@ async def page_system_prompt(request: Request):
 @app.get("/embed", response_class=HTMLResponse)
 async def page_embed(request: Request):
     return templates.TemplateResponse("embed.html", {"request": request})
+
+@app.get("/admin/dashboard", response_class=HTMLResponse)
+async def page_admin_dashboard(request: Request):
+    return templates.TemplateResponse("admin_dashboard.html", {"request": request, "active_page": "admin_dashboard"})

@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from app.config import get_api_key
 from app.modules.rag_chain import build_rag_chain, build_question_with_history
-from app.modules.conversation import get_history, add_message
+from app.modules.conversation import get_history, add_message, get_session, set_session_status, detect_handoff_intent
 from app.modules.evaluator import log_evaluation, calculate_similarity_score
 
 
@@ -29,6 +29,26 @@ async def ask_question(request: AskRequest):
         )
 
     start_time = time.time()
+    
+    # State Management & Router AI Check
+    if request.session_id:
+        session = get_session(request.session_id)
+        status = session["status"] if session else "BOT_HANDLING"
+        
+        if status == "WAITING_FOR_AGENT":
+            add_message(request.session_id, "user", request.question)
+            return {"answer": "Mohon tunggu sebentar, petugas desa kami akan segera membalas pesan Anda.", "sources": [], "similarity_score": 0, "response_time": 0}
+        elif status == "AGENT_HANDLING":
+            add_message(request.session_id, "user", request.question)
+            return {"answer": "_SILENT_", "sources": [], "similarity_score": 0, "response_time": 0}
+            
+        # Check Frustration/Intent
+        if detect_handoff_intent(request.question):
+            set_session_status(request.session_id, "WAITING_FOR_AGENT")
+            add_message(request.session_id, "user", request.question)
+            handoff_msg = "Sepertinya Anda membutuhkan bantuan lebih lanjut. Saya telah meneruskan obrolan ini ke petugas/admin desa. Mohon tunggu sebentar ya."
+            add_message(request.session_id, "bot", handoff_msg)
+            return {"answer": handoff_msg, "sources": [], "similarity_score": 0, "response_time": 0}
 
     # Build question with conversation history if session exists
     history = get_history(request.session_id) if request.session_id else []
