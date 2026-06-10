@@ -37,15 +37,24 @@ Pastikan pengaturan Webhook Target di SAAS WA API adalah sebagai berikut:
 - **Events**: Cukup pilih event `message.received`.
 
 ### 4. Menjalankan Server ChatBot
-**SANGAT PENTING**: Karena SAAS WA API berjalan di dalam Docker, server ChatBot (FastAPI) harus di-bind ke semua IP agar Docker bisa masuk dan mengirimkan data webhooks. Jalankan perintah ini:
+**SANGAT PENTING**: Karena SAAS WA API berjalan di dalam Docker, server ChatBot (FastAPI) harus di-bind ke semua IP agar Docker bisa masuk dan mengirimkan data webhooks.
 
+Buka terminal **pertama**, lalu jalankan API Backend:
 ```bash
-python -m uvicorn app.main:app --host 0.0.0.0 --reload
+cd "API Chatbot"
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-_(Server akan berjalan di port `8000`)_
+_(Server API akan berjalan di port `8000`)_
+
+Buka terminal **kedua**, lalu jalankan Halaman Depan (Landing Page):
+```bash
+cd landing_page
+python server.py
+```
+_(Landing page akan berjalan di port `5500`)_
 
 ### 5. Mengatur API Key & Knowledge Base
-1. Buka browser dan pergi ke **Dashboard ChatBot**: [http://localhost:8000](http://localhost:8000)
+1. Buka browser dan pergi ke **Dashboard ChatBot**: [http://127.0.0.1:8000](http://127.0.0.1:8000) (Hindari menggunakan `localhost` untuk mencegah masalah *connection refused* di Windows).
 2. Buka menu **Documents** untuk mengupload dokumen PDF/DOCX yang ingin digunakan sebagai bahan hafalan bot (RAG).
 3. Buka menu **Pengaturan Bot** dan pastikan Anda mengisi:
    - **Gemini / DeepSeek API Key**: Masukkan API Key dari Gemini (Google AI Studio) atau DeepSeek.
@@ -55,5 +64,5 @@ _(Server akan berjalan di port `8000`)_
 
 ### 6. Memantau Log Pesan
 Anda bisa melihat riwayat pesan masuk dan pesan keluar (lengkap beserta status keberhasilan dan tujuan nomor) secara _real-time_ di:
-👉 [http://localhost:8000/logs](http://localhost:8000/logs)
+👉 [http://127.0.0.1:8000/logs](http://127.0.0.1:8000/logs)
 Halaman ini akan otomatis me-refresh dirinya setiap 5 detik.
