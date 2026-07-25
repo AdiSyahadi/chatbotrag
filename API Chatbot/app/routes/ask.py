@@ -3,7 +3,7 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from app.config import get_api_key
-from app.modules.rag_chain import build_rag_chain, build_question_with_history
+from app.modules.rag_chain import build_rag_chain, build_question_with_history, get_langfuse_handler
 from app.modules.conversation import get_history, add_message, get_session, set_session_status, detect_handoff_intent
 from app.modules.evaluator import log_evaluation, calculate_similarity_score
 
@@ -60,8 +60,19 @@ async def ask_question(request: AskRequest):
         # Get source documents from retriever (use original question for better retrieval)
         source_docs = retriever.invoke(request.question)
 
-        # Get answer from chain (use enriched question with history for context-aware answer)
-        answer = rag_chain.invoke(enriched_question)
+        # Setup Langfuse handler
+        lf_handler = get_langfuse_handler(session_id=request.session_id or "web_chat")
+        callbacks = [lf_handler] if lf_handler else []
+
+        from langfuse import propagate_attributes
+        with propagate_attributes(session_id=request.session_id or "web_chat"):
+            # Get answer from chain (use enriched question with history for context-aware answer)
+            answer = rag_chain.invoke(
+                enriched_question, 
+                config={
+                    "callbacks": callbacks
+                }
+            )
     except Exception as e:
         return JSONResponse(
             status_code=500,

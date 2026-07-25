@@ -113,6 +113,37 @@
         </button>
     </div>
 </div>
+
+<div class="card" style="margin-top: 20px;">
+    <div class="card-header">
+        <i class="bi bi-activity"></i>
+        Langfuse (Observability)
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info" style="margin-bottom: 20px;">
+            <i class="bi bi-info-circle"></i>
+            <strong>Integrasi Langfuse:</strong>
+            Masukkan kredensial Langfuse Anda untuk memantau performa, latency, dan penggunaan token LLM.
+        </div>
+        <div class="form-group">
+            <label for="lfPublicKey">Public Key</label>
+            <input type="text" class="form-control" id="lfPublicKey" placeholder="pk-lf-...">
+        </div>
+        <div class="form-group">
+            <label for="lfSecretKey">Secret Key</label>
+            <input type="password" class="form-control" id="lfSecretKey" placeholder="sk-lf-...">
+        </div>
+        <div class="form-group">
+            <label for="lfHost">Host URL</label>
+            <input type="text" class="form-control" id="lfHost" placeholder="https://cloud.langfuse.com">
+        </div>
+        <button class="btn btn-primary" id="btnSaveLf" onclick="saveLf()">
+            <i class="bi bi-save"></i>
+            Simpan Langfuse Settings
+        </button>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -136,6 +167,10 @@
             document.getElementById('waApiUrl').value = data.wa_api_url;
             document.getElementById('waApiKey').value = data.wa_api_key;
             document.getElementById('waInstanceId').value = data.wa_instance_id;
+            
+            document.getElementById('lfPublicKey').value = data.langfuse_public_key;
+            document.getElementById('lfSecretKey').value = data.langfuse_secret_key;
+            document.getElementById('lfHost').value = data.langfuse_host;
 
         } catch (err) {
             showAlert('Gagal memuat pengaturan.', 'error');
@@ -256,6 +291,34 @@
         }
     }
 
+    async function saveLf() {
+        const payload = {
+            langfuse_public_key: document.getElementById('lfPublicKey').value,
+            langfuse_secret_key: document.getElementById('lfSecretKey').value,
+            langfuse_host: document.getElementById('lfHost').value,
+        };
+        var btn = document.getElementById('btnSaveLf');
+        setBtnLoading(btn, true);
+
+        try {
+            const resp = await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const data = await resp.json();
+
+            if (resp.ok) {
+                showAlert('Langfuse Settings berhasil disimpan.', 'success');
+            } else {
+                showAlert(data.error, 'error');
+            }
+        } catch (err) {
+            showAlert('Gagal menyimpan pengaturan Langfuse.', 'error');
+        } finally {
+            setBtnLoading(btn, false);
+        }
+    }
     function showAlert(message, type) {
         const el = document.getElementById('settingsAlert');
         const icon = type === 'success' ? 'bi-check-circle' : 'bi-x-circle';

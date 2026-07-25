@@ -14,3 +14,6 @@ aiofiles
 requests
 langchain-google-genai
 langchain-chroma
+langfuse
+ragas
+datasets

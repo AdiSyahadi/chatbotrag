@@ -7,6 +7,7 @@ from app.config import get_api_key, get_setting
 from app.modules.vectorstore import get_retriever
 from app.modules.conversation import format_history_for_prompt
 from app.routes.system_prompt import DEFAULT_SYSTEM_PROMPT
+from langfuse.langchain import CallbackHandler
 
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 
@@ -43,7 +44,7 @@ def build_rag_chain():
         )
     else:
         llm = ChatOpenAI(
-            model="deepseek-chat",
+            model="deepseek-v4-flash",
             openai_api_key=api_key,
             openai_api_base=DEEPSEEK_BASE_URL,
             temperature=0.3,
@@ -60,3 +61,20 @@ def build_rag_chain():
     )
 
     return rag_chain, retriever
+
+def get_langfuse_handler(session_id: str = None) -> CallbackHandler | None:
+    import os
+    public_key = get_setting("langfuse_public_key")
+    secret_key = get_setting("langfuse_secret_key")
+    host = get_setting("langfuse_host", "https://cloud.langfuse.com")
+    
+    if public_key and secret_key:
+        os.environ["LANGFUSE_PUBLIC_KEY"] = public_key
+        os.environ["LANGFUSE_SECRET_KEY"] = secret_key
+        os.environ["LANGFUSE_HOST"] = host
+        try:
+            handler = CallbackHandler()
+            return handler
+        except Exception:
+            return None
+    return None

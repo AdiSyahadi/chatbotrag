@@ -134,6 +134,104 @@ a:hover {
     min-height: 100vh;
 }
 
+/* ── Topbar ───────────────────────────────────────────────────────── */
+
+.topbar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding-bottom: 24px;
+    margin-bottom: 24px;
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+}
+
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.btn-user-menu {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    padding: 8px 16px;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow);
+}
+
+.btn-user-menu:hover {
+    background: var(--color-surface-alt);
+    border-color: var(--color-accent);
+}
+
+.btn-user-menu i.bi-person-circle {
+    font-size: 1.1rem;
+    color: var(--color-primary);
+}
+
+.btn-user-menu i.bi-chevron-down {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin-left: 4px;
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    background-color: var(--color-surface);
+    min-width: 180px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.dropdown-menu.show {
+    display: block;
+    animation: fadeInDown 0.2s ease;
+}
+
+@keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-menu a {
+    color: var(--color-text);
+    padding: 12px 16px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background 0.15s;
+}
+
+.dropdown-menu a i {
+    color: var(--color-danger);
+    font-size: 1.1rem;
+}
+
+.dropdown-menu a:hover {
+    background-color: #fef2f2;
+    color: var(--color-danger);
+}
+
 /* ── Page Header ──────────────────────────────────────────────────── */
 
 .page-header {

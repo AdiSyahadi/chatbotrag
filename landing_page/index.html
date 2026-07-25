@@ -29,6 +29,7 @@
             <ul class="nav-links">
                 <li><a href="#fitur">Layanan</a></li>
                 <li><a href="#cara-kerja">Prosedur</a></li>
+                <li><a href="#ulasan">Ulasan</a></li>
                 <li><a href="#faq">FAQ</a></li>
                 <li><a href="#hubungi" class="contact-link">HUBUNGI KAMI</a></li>
             </ul>
@@ -169,6 +170,23 @@
         </div>
     </section>
 
+    <!-- ═══ Ulasan Warga ═══ -->
+    <section class="section" id="ulasan">
+        <div class="container">
+            <div class="section-header">
+                <span class="badge"><i class="bi bi-star-fill text-warning"></i> Ulasan Warga</span>
+                <h2>Apa Kata Mereka?</h2>
+                <p>Rating Rata-rata: <span id="avgRating" style="font-weight: 700; color: #ffc107;">...</span> / 5.0 (<span id="totalRating">0</span> Ulasan)</p>
+            </div>
+            <div class="reviews-grid" id="reviewsContainer">
+                <p class="text-center w-100">Memuat ulasan terbaik...</p>
+            </div>
+            <div style="text-align: center; margin-top: 40px;">
+                <button class="btn btn-primary" onclick="openReviewModal()">Berikan Ulasan Anda</button>
+            </div>
+        </div>
+    </section>
+
     <!-- ═══ FAQ ═══ -->
     <section class="section" id="faq">
         <div class="container">
@@ -201,6 +219,27 @@
         </div>
     </section>
 
+    <!-- ═══ Review Modal ═══ -->
+    <div class="modal-overlay" id="reviewModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="margin: 0;">Nilai Layanan Kami</h3>
+                <button class="btn-close" onclick="closeReviewModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="reviewForm">
+                    <div class="stars-select" style="font-size: 2rem; color: #ccc; cursor: pointer; text-align: center; margin-bottom: 20px;">
+                        <span data-value="1">★</span><span data-value="2">★</span><span data-value="3">★</span><span data-value="4">★</span><span data-value="5">★</span>
+                    </div>
+                    <input type="hidden" id="reviewRating" value="0" required>
+                    <textarea id="reviewText" rows="4" placeholder="Bagikan pengalaman Anda..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 20px;"></textarea>
+                    <button type="submit" class="btn btn-primary w-100" style="width: 100%;" id="btnSubmitReview">Kirim Ulasan</button>
+                </form>
+                <div id="reviewAlert" style="margin-top: 15px; text-align: center; font-weight: 600;"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- ═══ Footer ═══ -->
     <footer class="footer">
         <div class="container footer-inner">
@@ -221,6 +260,105 @@
                 navbar.classList.add('scrolled');
             } else {
                 navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Reviews Logic
+        async function fetchReviews() {
+            try {
+                const res = await fetch('/api/v1/rating/summary');
+                const data = await res.json();
+                document.getElementById('avgRating').textContent = data.average;
+                document.getElementById('totalRating').textContent = data.total;
+
+                const container = document.getElementById('reviewsContainer');
+                if (data.recent_top_reviews && data.recent_top_reviews.length > 0) {
+                    container.innerHTML = data.recent_top_reviews.map(r => `
+                        <div class="feature-card" style="padding: 20px;">
+                            <div style="color: #ffc107; font-size: 1.2rem; margin-bottom: 10px;">
+                                ${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}
+                            </div>
+                            <p style="font-style: italic;">"${r.review_text}"</p>
+                            <small style="color: #888;">Warga (${r.source})</small>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<p class="text-center w-100">Belum ada ulasan.</p>';
+                }
+            } catch (e) {
+                console.error('Failed to load reviews');
+            }
+        }
+        
+        fetchReviews();
+
+        // Modal Logic
+        const reviewModal = document.getElementById('reviewModal');
+        const stars = document.querySelectorAll('.stars-select span');
+        const ratingInput = document.getElementById('reviewRating');
+
+        function openReviewModal() {
+            reviewModal.style.display = 'flex';
+        }
+        function closeReviewModal() {
+            reviewModal.style.display = 'none';
+        }
+
+        stars.forEach(star => {
+            star.addEventListener('click', () => {
+                const val = parseInt(star.getAttribute('data-value'));
+                ratingInput.value = val;
+                stars.forEach(s => {
+                    if (parseInt(s.getAttribute('data-value')) <= val) {
+                        s.style.color = '#ffc107';
+                    } else {
+                        s.style.color = '#ccc';
+                    }
+                });
+            });
+        });
+
+        document.getElementById('reviewForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const rating = parseInt(ratingInput.value);
+            const text = document.getElementById('reviewText').value;
+            const alertBox = document.getElementById('reviewAlert');
+
+            if (rating === 0) {
+                alertBox.textContent = "Silakan pilih bintang (1-5)";
+                alertBox.style.color = "red";
+                return;
+            }
+
+            const btn = document.getElementById('btnSubmitReview');
+            btn.disabled = true;
+            btn.textContent = "Mengirim...";
+
+            try {
+                const res = await fetch('/api/v1/rating', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({rating: rating, review_text: text})
+                });
+
+                if (res.ok) {
+                    alertBox.textContent = "Terima kasih atas ulasan Anda!";
+                    alertBox.style.color = "green";
+                    setTimeout(() => {
+                        closeReviewModal();
+                        fetchReviews();
+                    }, 2000);
+                } else {
+                    alertBox.textContent = "Terjadi kesalahan atau Anda mengirim terlalu cepat.";
+                    alertBox.style.color = "red";
+                    btn.disabled = false;
+                    btn.textContent = "Kirim Ulasan";
+                }
+            } catch (err) {
+                alertBox.textContent = "Gagal mengirim jaringan.";
+                alertBox.style.color = "red";
+                btn.disabled = false;
+                btn.textContent = "Kirim Ulasan";
             }
         });
     </script>

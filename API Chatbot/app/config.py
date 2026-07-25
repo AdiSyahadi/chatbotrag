@@ -21,8 +21,11 @@ os.makedirs(VECTORSTORE_DIR, exist_ok=True)
 
 
 def get_db_connection() -> sqlite3.Connection:
-    conn = sqlite3.connect(DATABASE_PATH)
+    # Set timeout to wait for locks to be released (15 seconds)
+    conn = sqlite3.connect(DATABASE_PATH, timeout=15.0)
     conn.row_factory = sqlite3.Row
+    # Enable Write-Ahead Logging (WAL) for better concurrency between readers and writers
+    conn.execute("PRAGMA journal_mode=WAL;")
     return conn
 
 
@@ -90,6 +93,51 @@ def init_database():
             FOREIGN KEY (session_id) REFERENCES sessions(session_id)
         )
     """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            hashed_password TEXT NOT NULL,
+            role TEXT DEFAULT 'admin'
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS ratings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            rating INTEGER,
+            review_text TEXT,
+            source TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS rating_flags (
+            session_id TEXT PRIMARY KEY,
+            last_prompt_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS ragas_evaluations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            evaluated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            faithfulness REAL,
+            answer_relevancy REAL,
+            context_precision REAL,
+            samples_count INTEGER
+        )
+    """)
+    
+    # Set default langfuse keys if not exist
+    cursor.execute("SELECT value FROM settings WHERE key = 'langfuse_public_key'")
+    if not cursor.fetchone():
+        cursor.execute("INSERT INTO settings (key, value) VALUES ('langfuse_secret_key', 'sk-lf-c96b796a-c1e5-4376-826d-5a6a52b1742d')")
+        cursor.execute("INSERT INTO settings (key, value) VALUES ('langfuse_public_key', 'pk-lf-3dce3971-7251-42a7-9b99-b24183688eea')")
+        cursor.execute("INSERT INTO settings (key, value) VALUES ('langfuse_host', 'https://jp.cloud.langfuse.com')")
 
     conn.commit()
     conn.close()

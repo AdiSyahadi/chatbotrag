@@ -26,7 +26,7 @@ def validate_gemini_key(api_key: str) -> str | None:
         else:
             # Gunakan DeepSeek (default)
             llm = ChatOpenAI(
-                model="deepseek-chat",
+                model="deepseek-v4-flash",
                 openai_api_key=api_key,
                 openai_api_base=DEEPSEEK_BASE_URL,
                 max_tokens=5,
@@ -52,6 +52,9 @@ class SettingsUpdate(BaseModel):
     wa_api_url: str | None = None
     wa_api_key: str | None = None
     wa_instance_id: str | None = None
+    langfuse_public_key: str | None = None
+    langfuse_secret_key: str | None = None
+    langfuse_host: str | None = None
 
 
 @router.get("/settings")
@@ -66,6 +69,9 @@ async def get_settings():
         "wa_api_url": get_setting("wa_api_url", ""),
         "wa_api_key": get_setting("wa_api_key", ""),
         "wa_instance_id": get_setting("wa_instance_id", ""),
+        "langfuse_public_key": get_setting("langfuse_public_key", ""),
+        "langfuse_secret_key": get_setting("langfuse_secret_key", ""),
+        "langfuse_host": get_setting("langfuse_host", "https://cloud.langfuse.com"),
     }
 
 
@@ -103,5 +109,11 @@ async def update_settings(settings: SettingsUpdate):
         set_setting("wa_api_key", settings.wa_api_key.strip())
     if settings.wa_instance_id is not None:
         set_setting("wa_instance_id", settings.wa_instance_id.strip())
+    if settings.langfuse_public_key is not None:
+        set_setting("langfuse_public_key", settings.langfuse_public_key.strip())
+    if settings.langfuse_secret_key is not None:
+        set_setting("langfuse_secret_key", settings.langfuse_secret_key.strip())
+    if settings.langfuse_host is not None:
+        set_setting("langfuse_host", settings.langfuse_host.strip())
 
     return {"message": "Pengaturan berhasil disimpan."}

@@ -225,11 +225,26 @@
 
 {% block scripts %}
 <script>
+    const token = localStorage.getItem('access_token');
+    const authHeaders = {
+        'Authorization': 'Bearer ' + token
+    };
+
     let currentSessionId = null;
     let fetchInterval = null;
 
+    function handleAuthError(response) {
+        if (response.status === 401) {
+            localStorage.removeItem('access_token');
+            window.location.href = '/login';
+            throw new Error('Unauthorized');
+        }
+        return response;
+    }
+
     function loadSessions() {
-        fetch('/api/admin/sessions')
+        fetch('/api/admin/sessions', { headers: authHeaders })
+            .then(handleAuthError)
             .then(r => r.json())
             .then(data => {
                 const container = document.getElementById('sessionsContainer');
@@ -268,7 +283,7 @@
                     container.appendChild(div);
                 });
                 container.scrollTop = scrollPos;
-            });
+            }).catch(err => console.error(err));
     }
 
     function selectSession(sessionId, status) {
@@ -301,7 +316,8 @@
 
     function loadMessages() {
         if(!currentSessionId) return;
-        fetch('/api/admin/sessions/' + currentSessionId + '/messages')
+        fetch('/api/admin/sessions/' + currentSessionId + '/messages', { headers: authHeaders })
+            .then(handleAuthError)
             .then(r => r.json())
             .then(data => {
                 const history = document.getElementById('chatHistory');
@@ -334,20 +350,23 @@
                 if (isScrolledToBottom) {
                     history.scrollTop = history.scrollHeight;
                 }
-            });
+            }).catch(err => console.error(err));
     }
 
     function takeoverSession() {
         if(!currentSessionId) return;
-        fetch('/api/admin/sessions/' + currentSessionId + '/takeover', { method: 'POST' })
+        fetch('/api/admin/sessions/' + currentSessionId + '/takeover', { method: 'POST', headers: authHeaders })
+            .then(handleAuthError)
             .then(r => r.json())
-            .then(d => selectSession(currentSessionId, 'AGENT_HANDLING'));
+            .then(d => selectSession(currentSessionId, 'AGENT_HANDLING'))
+            .catch(err => console.error(err));
     }
 
     function resolveSession() {
         if(!currentSessionId) return;
         if(confirm("Tandai obrolan telah selesai? AI akan kembali mengambil alih percakapan ini.")) {
-            fetch('/api/admin/sessions/' + currentSessionId + '/resolve', { method: 'POST' })
+            fetch('/api/admin/sessions/' + currentSessionId + '/resolve', { method: 'POST', headers: authHeaders })
+                .then(handleAuthError)
                 .then(r => r.json())
                 .then(d => {
                     document.getElementById('chatArea').style.display = 'none';
@@ -355,7 +374,7 @@
                     currentSessionId = null;
                     if(fetchInterval) clearInterval(fetchInterval);
                     loadSessions();
-                });
+                }).catch(err => console.error(err));
         }
     }
 
@@ -369,9 +388,14 @@
         input.focus();
         fetch('/api/admin/sessions/' + currentSessionId + '/reply', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                ...authHeaders
+            },
             body: JSON.stringify({ message: text })
-        }).then(() => loadMessages());
+        }).then(handleAuthError)
+          .then(() => loadMessages())
+          .catch(err => console.error(err));
     }
 
     document.getElementById('replyInput').addEventListener('keypress', function (e) {

@@ -3,7 +3,7 @@
 ChatBot cerdas untuk WhatsApp yang ditenagai oleh **DeepSeek AI** dan **Retrieval-Augmented Generation (RAG)** menggunakan ChromaDB. ChatBot ini dirancang khusus untuk berjalan berdampingan dengan **SAAS WA API**.
 
 ## Fitur Utama
-- **Integrasi DeepSeek AI**: Menggunakan model `deepseek-chat` via OpenAI SDK untuk respon yang cerdas.
+- **Integrasi DeepSeek AI**: Menggunakan model `deepseek-v4-flash` via OpenAI SDK untuk respon yang cerdas.
 - **RAG (Retrieval-Augmented Generation)**: Membaca dokumen PDF/DOCX yang di-upload dan menjawab pertanyaan spesifik berdasarkan pengetahuan di dalam dokumen tersebut.
 - **Local Embeddings**: Menggunakan model `all-MiniLM-L6-v2` dari HuggingFace yang berjalan 100% lokal secara gratis dan cepat (tidak memotong kuota API).
 - **Integrasi Webhook SAAS WA API**: Menerima _webhook_ langsung dari instance SAAS WA API dan membalas pesan secara otomatis.

@@ -36,6 +36,13 @@
     "#rag-widget-send:disabled{opacity:.5;cursor:not-allowed}",
     ".rag-spinner{display:inline-block;width:14px;height:14px;border:2px solid #e0ece6;border-top-color:#008069;border-radius:50%;animation:rag-spin .6s linear infinite}",
     "@keyframes rag-spin{to{transform:rotate(360deg)}}",
+    ".rag-rating-form{background:#fff;border-radius:8px;padding:12px;margin-top:8px;box-shadow:0 1px 2px rgba(0,0,0,0.1);display:flex;flex-direction:column;gap:8px;max-width:85%;align-self:flex-start;border:1px solid #e9edef}",
+    ".rag-rating-stars{display:flex;gap:4px;justify-content:center;font-size:24px;color:#d1d5db;cursor:pointer}",
+    ".rag-rating-stars i:hover,.rag-rating-stars i.active{color:#fbbf24}",
+    ".rag-rating-textarea{width:100%;border:1px solid #e5e7eb;border-radius:6px;padding:8px;font-size:13px;resize:none;font-family:inherit;outline:none}",
+    ".rag-rating-textarea:focus{border-color:#008069}",
+    ".rag-rating-submit{background:#008069;color:#fff;border:none;border-radius:6px;padding:8px 0;font-weight:600;cursor:pointer;font-size:14px;transition:background .2s}",
+    ".rag-rating-submit:hover{background:#006b58}",
     "@media(max-width:480px){#rag-widget-box{width:calc(100vw - 24px);right:12px;bottom:84px}}"
   ].join("");
   document.head.appendChild(css);
@@ -72,8 +79,9 @@
   var _messageCount = 0;
 
   function resetSession() {
+    appendMsg('<i class="bi bi-shield-lock-fill"></i> Sesi obrolan diakhiri otomatis (3 menit tanpa aktivitas). Jika percakapan ini bermanfaat, silakan berikan ulasan Anda di bawah ini sebelum memulai topik baru.', 'system');
+    appendRatingForm();
     _sessionId = crypto.randomUUID();
-    appendMsg('<i class="bi bi-shield-lock-fill"></i> Sesi obrolan direset otomatis (3 menit tanpa aktivitas) demi keamanan.', 'system');
   }
 
   function activityPing() {
@@ -109,6 +117,9 @@
                           data.messages.forEach(function(msg) {
                               var prefix = msg.real_sender === "ADMIN" ? "**[Admin]** " : "";
                               appendMsg(prefix + msg.text, msg.role);
+                              if (msg.show_rating_form) {
+                                  appendRatingForm();
+                              }
                           });
                       }
                       _messageCount = data.total;
@@ -204,6 +215,95 @@
     return s;
   }
 
+  function appendRatingForm() {
+    var div = document.createElement("div");
+    div.className = "rag-rating-form";
+    
+    // Bintang
+    var starsDiv = document.createElement("div");
+    starsDiv.className = "rag-rating-stars";
+    var selectedRating = 0;
+    
+    for (var i = 1; i <= 5; i++) {
+        var star = document.createElement("i");
+        star.className = "bi bi-star-fill";
+        star.dataset.val = i;
+        
+        star.addEventListener("mouseover", function(e) {
+            var val = parseInt(e.target.dataset.val);
+            Array.from(starsDiv.children).forEach(s => {
+                if (parseInt(s.dataset.val) <= val) s.classList.add("active");
+                else s.classList.remove("active");
+            });
+        });
+        
+        star.addEventListener("mouseout", function() {
+            Array.from(starsDiv.children).forEach(s => {
+                if (parseInt(s.dataset.val) <= selectedRating) s.classList.add("active");
+                else s.classList.remove("active");
+            });
+        });
+        
+        star.addEventListener("click", function(e) {
+            selectedRating = parseInt(e.target.dataset.val);
+            Array.from(starsDiv.children).forEach(s => {
+                if (parseInt(s.dataset.val) <= selectedRating) s.classList.add("active");
+                else s.classList.remove("active");
+            });
+        });
+        
+        starsDiv.appendChild(star);
+    }
+    
+    var textarea = document.createElement("textarea");
+    textarea.className = "rag-rating-textarea";
+    textarea.placeholder = "Tuliskan saran atau ulasan Anda (opsional)...";
+    textarea.rows = 2;
+    
+    var submitBtn = document.createElement("button");
+    submitBtn.className = "rag-rating-submit";
+    submitBtn.innerText = "Kirim Penilaian";
+    
+    submitBtn.addEventListener("click", function() {
+        if (selectedRating === 0) {
+            alert("Silakan pilih bintang terlebih dahulu.");
+            return;
+        }
+        
+        submitBtn.disabled = true;
+        submitBtn.innerText = "Mengirim...";
+        
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", (API_URL || "") + "/api/v1/rating", true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    div.innerHTML = "<div style='color:#008069;text-align:center;font-weight:600;'><i class='bi bi-check-circle-fill'></i> Terima kasih atas ulasan Anda!</div>";
+                    setTimeout(function() {
+                        div.style.display = "none";
+                    }, 3000);
+                } else {
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = "Kirim Penilaian";
+                    alert("Gagal mengirim ulasan.");
+                }
+            }
+        };
+        xhr.send(JSON.stringify({
+            rating: selectedRating,
+            review_text: textarea.value.trim()
+        }));
+    });
+    
+    div.appendChild(starsDiv);
+    div.appendChild(textarea);
+    div.appendChild(submitBtn);
+    
+    msgContainer.appendChild(div);
+    msgContainer.scrollTop = msgContainer.scrollHeight;
+  }
+
   // ── Send logic ──────────────────────────────────────────────────
   var sending = false;
 
@@ -230,6 +330,9 @@
           var data = JSON.parse(xhr.responseText);
           if (data.reply !== "_SILENT_") {
               appendMsg(data.reply || data.error || "Terjadi kesalahan.", data.role || "bot");
+              if (data.show_rating_form) {
+                  appendRatingForm();
+              }
           }
           if (data.total !== undefined) {
               _messageCount = data.total; // Sinkronkan hitungan dengan database server

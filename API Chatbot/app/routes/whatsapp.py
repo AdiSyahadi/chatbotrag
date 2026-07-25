@@ -1,11 +1,15 @@
 import requests
 import traceback
+import re
+from datetime import datetime, timedelta
+
 from fastapi import APIRouter, Request, BackgroundTasks
-from app.config import get_setting, get_api_key
-from app.modules.rag_chain import build_rag_chain, build_question_with_history
-from app.modules.rag_chain import build_rag_chain, build_question_with_history
+from app.config import get_setting, get_api_key, get_db_connection
+from app.modules.rag_chain import build_rag_chain, build_question_with_history, get_langfuse_handler
 from app.modules.conversation import get_history, add_message, get_session, set_session_status, detect_handoff_intent
 from app.modules.logger import chat_logger
+from app.modules.wa_sender import send_whatsapp_message
+from app.modules.rating_parser import parse_rating_with_llm
 
 router = APIRouter()
 
@@ -53,6 +57,11 @@ def process_whatsapp_message(payload: dict):
             session = get_session(sender_log_str)
             status = session["status"] if session else "BOT_HANDLING"
             
+            # Jika sesi sudah selesai sebelumnya, buka sesi baru
+            if status == "RESOLVED":
+                status = "BOT_HANDLING"
+                set_session_status(sender_log_str, "BOT_HANDLING")
+            
             if status == "WAITING_FOR_AGENT":
                 add_message(sender_log_str, "user", content)
                 answer = "Mohon tunggu sebentar, petugas desa kami akan segera membalas pesan Anda."
@@ -60,13 +69,74 @@ def process_whatsapp_message(payload: dict):
                 add_message(sender_log_str, "user", content)
                 # Jangan membalas apa-apa jika agen yang handle
                 return
-            elif detect_handoff_intent(content):
-                set_session_status(sender_log_str, "WAITING_FOR_AGENT")
-                add_message(sender_log_str, "user", content)
-                answer = "Sepertinya Anda membutuhkan bantuan lebih lanjut. Saya telah meneruskan obrolan ini ke petugas/admin desa. Mohon tunggu sebentar ya."
-                add_message(sender_log_str, "bot", answer)
-            else:
-                # Call RAG to get the answer
+            elif status == "AWAITING_RATING":
+                rating_data = parse_rating_with_llm(content)
+                if rating_data["is_rating"]:
+                    conn = get_db_connection()
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "INSERT INTO ratings (user_id, rating, review_text, source) VALUES (?, ?, ?, ?)",
+                        (sender_log_str, rating_data["rating"], rating_data["review_text"], "WA")
+                    )
+                    conn.commit()
+                    conn.close()
+                    set_session_status(sender_log_str, "RESOLVED")
+                    answer = "Terima kasih atas ulasan Anda! Penilaian Anda sangat berarti bagi kami."
+                    add_message(sender_log_str, "bot", answer)
+                    
+                    recipient = phone_number or chat_jid.split("@")[0] if "@" in chat_jid else chat_jid
+                    send_whatsapp_message(recipient, answer, chat_jid)
+                    return
+                else:
+                    # Jika bukan rating, anggap pertanyaan baru
+                    set_session_status(sender_log_str, "BOT_HANDLING")
+                    status = "BOT_HANDLING"
+
+            if status == "BOT_HANDLING":
+                if detect_handoff_intent(content):
+                    set_session_status(sender_log_str, "WAITING_FOR_AGENT")
+                    add_message(sender_log_str, "user", content)
+                    answer = "Sepertinya Anda membutuhkan bantuan lebih lanjut. Saya telah meneruskan obrolan ini ke petugas/admin desa. Mohon tunggu sebentar ya."
+                    add_message(sender_log_str, "bot", answer)
+                    
+                    recipient = phone_number or chat_jid.split("@")[0] if "@" in chat_jid else chat_jid
+                    send_whatsapp_message(recipient, answer, chat_jid)
+                    return
+                else:
+                    # Gratitude trigger
+                    gratitude_pattern = r'.*(makasih|terima kasih|thanks|terimakasih|oke makasih|ok sip|mantap).*'
+                    # Hanya trigger jika pesannya relatif pendek dan bukan pertanyaan
+                    if len(content) <= 40 and "?" not in content and re.match(gratitude_pattern, content.strip(), re.IGNORECASE):
+                        conn = get_db_connection()
+                        cursor = conn.cursor()
+                        cursor.execute("SELECT last_prompt_time FROM rating_flags WHERE session_id = ?", (sender_log_str,))
+                        row = cursor.fetchone()
+                        
+                        can_prompt = True
+                        if row and row["last_prompt_time"]:
+                            try:
+                                last_prompt = datetime.strptime(row["last_prompt_time"], "%Y-%m-%d %H:%M:%S")
+                                if datetime.utcnow() - last_prompt < timedelta(hours=24):
+                                    can_prompt = False
+                            except Exception:
+                                pass
+                        
+                        if can_prompt:
+                            cursor.execute("INSERT OR REPLACE INTO rating_flags (session_id, last_prompt_time) VALUES (?, CURRENT_TIMESTAMP)", (sender_log_str,))
+                            conn.commit()
+                            conn.close()
+                            
+                            set_session_status(sender_log_str, "AWAITING_RATING")
+                            answer = "Sama-sama! 😊 Boleh minta waktunya sebentar? Seberapa puas Anda dengan jawaban otomatis Selacau Bot (1-5 bintang)? Anda bisa membalas bebas, misalnya 'Bintang 5 botnya pintar'."
+                            add_message(sender_log_str, "bot", answer)
+                            
+                            recipient = phone_number or chat_jid.split("@")[0] if "@" in chat_jid else chat_jid
+                            send_whatsapp_message(recipient, answer, chat_jid)
+                            return
+                        else:
+                            conn.close()
+                            
+                    # Call RAG to get the answer
                 try:
                     # 1. Fetch history for this specific sender
                     history = get_history(sender_log_str)
@@ -74,8 +144,19 @@ def process_whatsapp_message(payload: dict):
                     content_with_history = build_question_with_history(content, history)
                     
                     rag_chain, retriever = build_rag_chain()
-                    # Get answer from chain using context-injected question
-                    answer = rag_chain.invoke(content_with_history)
+                    # Setup Langfuse handler
+                    lf_handler = get_langfuse_handler(session_id=sender_log_str)
+                    callbacks = [lf_handler] if lf_handler else []
+
+                    from langfuse import propagate_attributes
+                    with propagate_attributes(session_id=sender_log_str):
+                        # Get answer from chain using context-injected question
+                        answer = rag_chain.invoke(
+                            content_with_history, 
+                            config={
+                                "callbacks": callbacks
+                            }
+                        )
                     
                     # 3. Save memory for the next conversation
                     add_message(sender_log_str, "user", content)
@@ -98,7 +179,6 @@ def process_whatsapp_message(payload: dict):
         print(f"Debug: recipient={recipient}, chat_jid={chat_jid}, phone_number={phone_number}")
         
         # Kirim balasan menggunakan modul wa_sender
-        from app.modules.wa_sender import send_whatsapp_message
         send_whatsapp_message(recipient, answer, chat_jid)
         
     except Exception as e:

@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Ulasan Warga - Chatbot Desa{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-star"></i> Ulasan Warga</h1>
+    <p>Pantau tingkat kepuasan warga terhadap layanan Chatbot dan Admin.</p>
+</div>
+
+<div class="card fade-in">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table" id="reviewsTable">
+                <thead>
+                    <tr>
+                        <th>Tanggal</th>
+                        <th>Sumber</th>
+                        <th>User ID</th>
+                        <th>Rating</th>
+                        <th>Komentar</th>
+                    </tr>
+                </thead>
+                <tbody id="reviewsBody">
+                    <tr><td colspan="5" class="text-center">Memuat ulasan...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    const token = localStorage.getItem('access_token');
+
+    try {
+        const response = await fetch('/api/admin/reviews', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.status === 401) {
+            localStorage.removeItem('access_token');
+            window.location.href = '/login';
+            return;
+        }
+
+        const data = await response.json();
+        const tbody = document.getElementById('reviewsBody');
+        tbody.innerHTML = '';
+
+        if (data.reviews && data.reviews.length > 0) {
+            data.reviews.forEach(review => {
+                const tr = document.createElement('tr');
+                
+                // Format tanggal
+                const date = new Date(review.created_at);
+                const dateStr = date.toLocaleString('id-ID');
+                
+                // Format Bintang
+                let stars = '';
+                if(review.rating) {
+                    for(let i=1; i<=5; i++) {
+                        stars += i <= review.rating ? '<i class="bi bi-star-fill text-warning"></i>' : '<i class="bi bi-star text-muted"></i>';
+                    }
+                } else {
+                    stars = '<span class="badge bg-secondary">Teks Saja</span>';
+                }
+
+                // Format Sumber
+                let sourceBadge = '';
+                if(review.source === 'WEB') sourceBadge = '<span class="badge bg-primary">Web</span>';
+                else if(review.source.includes('WA')) sourceBadge = '<span class="badge bg-success">WhatsApp</span>';
+                else sourceBadge = `<span class="badge bg-secondary">${review.source}</span>`;
+
+                tr.innerHTML = `
+                    <td>${dateStr}</td>
+                    <td>${sourceBadge}</td>
+                    <td><span class="text-muted">${review.user_id}</span></td>
+                    <td>${stars}</td>
+                    <td>${review.review_text || '<i class="text-muted">Tidak ada komentar</i>'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } else {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Belum ada ulasan</td></tr>';
+        }
+    } catch (err) {
+        console.error("Error loading reviews:", err);
+        document.getElementById('reviewsBody').innerHTML = '<tr><td colspan="5" class="text-center text-danger">Gagal memuat data</td></tr>';
+    }
+});
+</script>
+
+<style>
+.text-warning { color: #ffc107; }
+.text-muted { color: #6c757d; }
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { padding: 1rem; border-bottom: 1px solid #dee2e6; text-align: left; }
+.badge { padding: 0.35em 0.65em; border-radius: 0.25rem; font-size: 0.75em; font-weight: 700; color: #fff; }
+.bg-primary { background-color: #0d6efd; }
+.bg-success { background-color: #198754; }
+.bg-secondary { background-color: #6c757d; }
+</style>
+{% endblock %}

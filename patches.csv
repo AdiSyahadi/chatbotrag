@@ -1,0 +1,17 @@
+patch_id,objective,files_changed,status,verification_note
+P001,Implement AI-Driven Rating System,"app/config.py, app/main.py, app/routes/whatsapp.py, app/routes/reviews.py, app/routes/admin_api.py, app/modules/rating_parser.py, templates/base.html, templates/reviews.html, landing_page/index.html, landing_page/style.css",DONE,Verified via backend endpoints and WhatsApp LLM prompt
+P002,Fix API routing and dependencies,app/routes/reviews.py; landing_page/index.html; app/modules/rating_parser.py,DONE,Verified via Invoke-RestMethod and server reload
+P003,Fix Ulasan Warga menu click and UI layout,templates/reviews.html,DONE,Verified by fixing JWT token name and CSS classes
+P004,Improve logout UI with Topbar dropdown,"templates/base.html, static/style.css, templates/admin_dashboard.html, templates/reviews.html",DONE,Verified by adding CSS styles and global JS logic
+P005,Apply AWAITING_RATING logic and gratitude trigger to Web Widget,app/routes/public_api.py,DONE,Verified by porting WA rating logic to public chat endpoint
+P006,Implement interactive UI Rating Form in Web Widget,"landing_page/widget.js, app/routes/public_api.py",DONE,Verified by adding show_rating_form flag and appendRatingForm UI function
+P007,Trigger rating request on 3-minute idle timeout,"app/modules/conversation.py, landing_page/widget.js",DONE,Verified by modifying monitor_sessions background task and widget resetSession logic
+P008,Fix gratitude edge case to not trigger on long messages or new questions,"app/routes/public_api.py, app/routes/whatsapp.py",DONE,Verified by adding message length and question mark checks to gratitude trigger
+P009,Fix SQLite database is locked deadlock,"app/config.py, app/modules/conversation.py",DONE,Verified by enabling WAL mode and fixing add_message call inside uncommitted loop
+P010,Fix LangChain Chroma deprecation warning,app/modules/vectorstore.py,DONE,Verified by replacing langchain_community with langchain_chroma import
+P011,Fix AWAITING_RATING sessions appearing in Admin Live Chat queue,app/routes/admin_api.py,DONE,Verified by restricting SQL query to WAITING_FOR_AGENT and AGENT_HANDLING statuses
+P012,Fix WA 3-minute timeout not triggering,app/modules/conversation.py,DONE,Verified by fixing + number parsing and shortening sleep loop to 30s
+P013,Fix Server Crash and WA Handoff Bug,"app/modules/vectorstore.py, app/routes/whatsapp.py",DONE,Verified by reverting Chroma import to fix ModuleNotFoundError and adding return to handoff intent
+P014,Fix WhatsApp rating not saving to DB,"app/modules/rating_parser.py, app/routes/public_api.py",DONE,Verified by changing model to gemini-pro to prevent API Key exceptions and fixing WEB_CHAT rating keys
+P015,Fix infinite rating request loop,"app/routes/whatsapp.py, app/routes/public_api.py",DONE,Verified by changing status to RESOLVED after rating and resetting to BOT_HANDLING on new messages
+P016,Fix rating parser failing for DeepSeek API keys,app/modules/rating_parser.py,DONE,Verified by porting the AIzaSy detection logic from rag_chain.py to use ChatOpenAI when needed

@@ -163,20 +163,72 @@ async def monitor_sessions():
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            # Hapus sesi yang lebih dari TTL (hati-hati, ini bisa menghapus riwayat)
-            # Untuk skenario Handoff, kita TIDAK otomatis menghapus riwayat, 
-            # melainkan biarkan saja, atau set status ke EXPIRED.
-            cursor.execute("SELECT session_id FROM sessions WHERE strftime('%s', 'now') - strftime('%s', last_activity) > ?", (SESSION_TTL_SECONDS,))
-            expired_sessions = cursor.fetchall()
             
-            # Jika ingin menghapus:
-            # for s in expired_sessions:
-            #    cursor.execute("DELETE FROM messages WHERE session_id=?", (s['session_id'],))
-            #    cursor.execute("DELETE FROM sessions WHERE session_id=?", (s['session_id'],))
+            # Cari sesi yang lebih dari TTL (3 menit) dan belum pernah diminta rating (hanya yang BOT_HANDLING atau AGENT_HANDLING)
+            cursor.execute("""
+                SELECT session_id, status FROM sessions 
+                WHERE strftime('%s', 'now') - strftime('%s', last_activity) > ? 
+                AND status IN ('BOT_HANDLING', 'AGENT_HANDLING')
+            """, (SESSION_TTL_SECONDS,))
+            
+            idle_sessions = cursor.fetchall()
+            if idle_sessions:
+                print(f"DEBUG monitor_sessions: Found {len(idle_sessions)} idle sessions to ask rating")
+            
+            sessions_to_notify_rating = []
+            sessions_to_notify_closed = []
+            
+            for s in idle_sessions:
+                sid = s['session_id']
+                
+                # Cek apakah sudah ditanya rating dalam 24 jam terakhir
+                cursor.execute("SELECT last_prompt_time FROM rating_flags WHERE session_id = ?", (sid,))
+                flag_row = cursor.fetchone()
+                can_prompt = True
+                if flag_row and flag_row["last_prompt_time"]:
+                    try:
+                        from datetime import datetime, timedelta
+                        last_prompt = datetime.strptime(flag_row["last_prompt_time"], "%Y-%m-%d %H:%M:%S")
+                        if datetime.utcnow() - last_prompt < timedelta(hours=24):
+                            can_prompt = False
+                    except Exception:
+                        pass
+                
+                if can_prompt:
+                    # Ubah status ke AWAITING_RATING agar pesan berikutnya ditangkap sebagai rating
+                    cursor.execute("UPDATE sessions SET status='AWAITING_RATING', last_activity=CURRENT_TIMESTAMP WHERE session_id=?", (sid,))
+                    cursor.execute("INSERT OR REPLACE INTO rating_flags (session_id, last_prompt_time) VALUES (?, CURRENT_TIMESTAMP)", (sid,))
+                    
+                    # Kirim pesan rating jika itu sesi WA
+                    if "@" in sid or sid.replace("+", "").isdigit():
+                        sessions_to_notify_rating.append(sid)
+                else:
+                    # Sudah pernah ditanya rating, cukup akhiri sesi tanpa menagih lagi
+                    cursor.execute("UPDATE sessions SET status='RESOLVED', last_activity=CURRENT_TIMESTAMP WHERE session_id=?", (sid,))
+                    if "@" in sid or sid.replace("+", "").isdigit():
+                        sessions_to_notify_closed.append(sid)
             
             conn.commit()
             conn.close()
+            
+            # Panggil add_message di luar transaksi untuk menghindari deadlock (database is locked)
+            for sid in sessions_to_notify_rating:
+                msg = "Sesi obrolan otomatis diakhiri karena tidak ada aktivitas selama 3 menit. Jika percakapan ini bermanfaat, seberapa puas Anda dengan layanan Chatbot kami (1-5 bintang)? Anda bisa membalas dengan 'Bintang 5' atau abaikan pesan ini jika ingin memulai topik baru."
+                add_message(sid, "assistant", msg)
+                
+                # Pastikan recipient dalam format yang didukung SAAS WA API (angka saja)
+                recipient = sid.split("@")[0] if "@" in sid else sid
+                send_whatsapp_message(recipient, msg, fallback_jid=sid)
+                
+            for sid in sessions_to_notify_closed:
+                msg = "Sesi obrolan otomatis diakhiri karena tidak ada aktivitas selama 3 menit. Terima kasih telah menghubungi layanan administrasi Desa Selacau. Silakan kirim pesan baru jika Anda butuh bantuan lagi."
+                add_message(sid, "assistant", msg)
+                
+                recipient = sid.split("@")[0] if "@" in sid else sid
+                send_whatsapp_message(recipient, msg, fallback_jid=sid)
+                
         except Exception as e:
             print("Error in monitor_sessions DB:", e)
         
-        await asyncio.sleep(60)
+        # Cek setiap 30 detik agar lebih responsif terhadap 3 menit (180 detik)
+        await asyncio.sleep(30)

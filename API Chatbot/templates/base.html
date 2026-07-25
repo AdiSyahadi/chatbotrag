@@ -53,6 +53,18 @@
                     </a>
                 </li>
                 <li>
+                    <a href="/admin/reviews" class="{% if active_page == 'admin_reviews' %}active{% endif %}">
+                        <i class="bi bi-star"></i>
+                        <span>Ulasan Warga</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/admin/evaluasi" class="{% if active_page == 'admin_evaluasi' %}active{% endif %}">
+                        <i class="bi bi-graph-up-arrow"></i>
+                        <span>Evaluasi AI</span>
+                    </a>
+                </li>
+                <li>
                     <a href="/embed" class="{% if active_page == 'embed' %}active{% endif %}">
                         <i class="bi bi-code-square"></i>
                         <span>Embed</span>
@@ -66,10 +78,58 @@
 
         <!-- Main Content -->
         <main class="main-content">
+            <header class="topbar" id="appTopbar" style="display: none;">
+                <div class="topbar-right">
+                    <div class="dropdown">
+                        <button class="btn-user-menu" onclick="toggleUserMenu()">
+                            <i class="bi bi-person-circle"></i> <span>My Account</span> <i class="bi bi-chevron-down"></i>
+                        </button>
+                        <div class="dropdown-menu" id="userDropdown">
+                            <a href="#" onclick="performLogout()"><i class="bi bi-box-arrow-right"></i> Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </header>
             {% block content %}{% endblock %}
         </main>
     </div>
 
+    <script>
+        // Global logic for Topbar and Logout
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+            
+            const topbar = document.getElementById('appTopbar');
+            if (topbar) topbar.style.display = 'flex';
+        });
+
+        function toggleUserMenu() {
+            const menu = document.getElementById('userDropdown');
+            menu.classList.toggle('show');
+        }
+
+        // Close dropdown if clicked outside
+        window.onclick = function(event) {
+            if (!event.target.closest('.dropdown')) {
+                const dropdowns = document.getElementsByClassName("dropdown-menu");
+                for (let i = 0; i < dropdowns.length; i++) {
+                    let openDropdown = dropdowns[i];
+                    if (openDropdown.classList.contains('show')) {
+                        openDropdown.classList.remove('show');
+                    }
+                }
+            }
+        }
+
+        function performLogout() {
+            localStorage.removeItem('access_token');
+            window.location.href = '/login';
+        }
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% set active_page = "admin_evaluasi" %}
+
+{% block title %}Evaluasi AI (RAGAS) — RAG Chatbot{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-graph-up-arrow"></i> Evaluasi AI (RAGAS)</h1>
+    <p>Pantau metrik kualitas jawaban chatbot berdasarkan Faithfulness dan Answer Relevance.</p>
+</div>
+
+<div id="evalAlert" style="display: none;"></div>
+
+<div class="card" style="margin-bottom: 20px;">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <i class="bi bi-activity"></i> Trend Metrik Evaluasi
+        </div>
+        <button class="btn btn-primary btn-sm" id="btnRunEval" onclick="runEvaluation()">
+            <i class="bi bi-play-fill"></i> Jalankan Evaluasi RAGAS Sekarang
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info" style="margin-bottom: 20px;">
+            <i class="bi bi-info-circle"></i>
+            <strong>Keterangan Metrik (Skor 0 - 1):</strong><br>
+            - <b>Faithfulness:</b> Seberapa patuh AI terhadap dokumen sumber (menghindari halusinasi).<br>
+            - <b>Answer Relevance:</b> Seberapa relevan/nyambung jawaban AI dengan pertanyaan awal.
+        </div>
+        
+        <div style="height: 400px; width: 100%;">
+            <canvas id="evalChart"></canvas>
+        </div>
+        
+        <div class="table-responsive" style="margin-top: 30px;">
+            <table class="table" id="evalTable">
+                <thead>
+                    <tr>
+                        <th>Waktu Evaluasi</th>
+                        <th>Jumlah Sampel Uji</th>
+                        <th>Faithfulness</th>
+                        <th>Answer Relevance</th>
+                    </tr>
+                </thead>
+                <tbody id="evalTableBody">
+                    <tr><td colspan="4" class="text-center">Memuat data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let evalChart;
+    
+    document.addEventListener('DOMContentLoaded', loadMetrics);
+
+    async function loadMetrics() {
+        try {
+            const resp = await fetch('/api/evaluasi/metrics');
+            const data = await resp.json();
+
+            if (data.status === 'success') {
+                renderChart(data.data);
+                renderTable(data.data);
+                
+                if (data.is_evaluating) {
+                    showAlert('Proses evaluasi sedang berjalan di latar belakang. Muat ulang halaman ini nanti untuk melihat hasilnya.', 'info');
+                    document.getElementById('btnRunEval').disabled = true;
+                }
+            } else {
+                showAlert(data.error || 'Gagal memuat data metrik.', 'error');
+            }
+        } catch (err) {
+            showAlert('Terjadi kesalahan jaringan saat memuat metrik.', 'error');
+        }
+    }
+
+    function renderChart(historyData) {
+        const ctx = document.getElementById('evalChart').getContext('2d');
+        
+        const labels = historyData.map(d => new Date(d.evaluated_at).toLocaleString('id-ID'));
+        const faithfulnessData = historyData.map(d => d.faithfulness);
+        const relevancyData = historyData.map(d => d.answer_relevancy);
+
+        if (evalChart) {
+            evalChart.destroy();
+        }
+
+        evalChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Faithfulness',
+                        data: faithfulnessData,
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: 'Answer Relevance',
+                        data: relevancyData,
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 1.0,
+                        title: { display: true, text: 'Skor (0 - 1)' }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderTable(historyData) {
+        const tbody = document.getElementById('evalTableBody');
+        tbody.innerHTML = '';
+
+        if (historyData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center" style="padding:20px;">Belum ada data evaluasi. Klik "Jalankan Evaluasi" untuk memulai.</td></tr>';
+            return;
+        }
+
+        // Tampilkan dari yang terbaru di tabel
+        [...historyData].reverse().forEach(row => {
+            const tr = document.createElement('tr');
+            
+            const faithColor = row.faithfulness > 0.8 ? 'color: var(--color-success)' : (row.faithfulness > 0.5 ? 'color: #ffc107' : 'color: var(--color-danger)');
+            const relColor = row.answer_relevancy > 0.8 ? 'color: var(--color-success)' : (row.answer_relevancy > 0.5 ? 'color: #ffc107' : 'color: var(--color-danger)');
+
+            tr.innerHTML = `
+                <td>${new Date(row.evaluated_at).toLocaleString('id-ID')}</td>
+                <td>${row.samples_count} percakapan</td>
+                <td style="font-weight:bold; ${faithColor}">${(row.faithfulness * 100).toFixed(1)}%</td>
+                <td style="font-weight:bold; ${relColor}">${(row.answer_relevancy * 100).toFixed(1)}%</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function runEvaluation() {
+        var btn = document.getElementById('btnRunEval');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;margin-right:5px;"></span> Memproses...';
+
+        try {
+            const resp = await fetch('/api/evaluasi/run', { method: 'POST' });
+            const data = await resp.json();
+
+            if (resp.ok) {
+                showAlert(data.message, 'success');
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Evaluasi berjalan...';
+                }, 2000);
+            } else {
+                showAlert(data.error, 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-play-fill"></i> Jalankan Evaluasi RAGAS Sekarang';
+            }
+        } catch (err) {
+            showAlert('Gagal menghubungi server.', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-play-fill"></i> Jalankan Evaluasi RAGAS Sekarang';
+        }
+    }
+
+    function showAlert(message, type) {
+        const el = document.getElementById('evalAlert');
+        const icon = type === 'success' ? 'bi-check-circle' : (type === 'info' ? 'bi-info-circle' : 'bi-x-circle');
+        el.style.display = 'block';
+        el.innerHTML = '<div class="alert alert-' + type + '"><i class="bi ' + icon + '"></i> ' + escapeHtml(message) + '</div>';
+        
+        if(type !== 'info') {
+            setTimeout(function() { el.style.display = 'none'; }, 5000);
+        }
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+    }
+</script>
+{% endblock %}
