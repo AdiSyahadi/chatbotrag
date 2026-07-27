@@ -19,7 +19,7 @@ def validate_gemini_key(api_key: str) -> str | None:
         if api_key.startswith("AIzaSy"):
             # Gunakan Gemini
             llm = ChatGoogleGenerativeAI(
-                model="gemini-1.5-flash",
+                model="gemini-2.5-flash",
                 google_api_key=api_key,
                 max_tokens=5,
             )

@@ -53,8 +53,8 @@ def run_ragas_evaluation(limit: int = 10) -> dict:
         return {"error": "API key belum diatur."}
 
     if api_key.startswith("AIzaSy"):
-        llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=api_key)
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=api_key)
+        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=api_key)
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=api_key)
     else:
         # Wrap ChatOpenAI to remove 'n' parameter because DeepSeek API rejects n > 1
         class DeepSeekChatOpenAI(ChatOpenAI):

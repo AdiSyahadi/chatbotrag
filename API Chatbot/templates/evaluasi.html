@@ -57,6 +57,7 @@
 <script>
     let evalChart;
     
+    let pollInterval = null;
     document.addEventListener('DOMContentLoaded', loadMetrics);
 
     async function loadMetrics() {
@@ -67,10 +68,23 @@
             if (data.status === 'success') {
                 renderChart(data.data);
                 renderTable(data.data);
+                const btn = document.getElementById('btnRunEval');
                 
                 if (data.is_evaluating) {
-                    showAlert('Proses evaluasi sedang berjalan di latar belakang. Muat ulang halaman ini nanti untuk melihat hasilnya.', 'info');
-                    document.getElementById('btnRunEval').disabled = true;
+                    if (!pollInterval) {
+                        showAlert('Proses evaluasi sedang berjalan di latar belakang. Silakan tunggu, halaman akan diperbarui otomatis.', 'info');
+                        pollInterval = setInterval(loadMetrics, 5000);
+                    }
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;margin-right:5px;"></span> Evaluasi berjalan...';
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-play-fill"></i> Jalankan Evaluasi RAGAS Sekarang';
+                    if (pollInterval) {
+                        clearInterval(pollInterval);
+                        pollInterval = null;
+                        showAlert('Evaluasi selesai!', 'success');
+                    }
                 }
             } else {
                 showAlert(data.error || 'Gagal memuat data metrik.', 'error');
@@ -167,9 +181,7 @@
 
             if (resp.ok) {
                 showAlert(data.message, 'success');
-                setTimeout(() => {
-                    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Evaluasi berjalan...';
-                }, 2000);
+                loadMetrics(); // triggers the polling loop
             } else {
                 showAlert(data.error, 'error');
                 btn.disabled = false;
