@@ -181,11 +181,18 @@ async def monitor_sessions():
             for s in idle_sessions:
                 sid = s['session_id']
                 
+                # Cek apakah sudah pernah memberi rating
+                cursor.execute("SELECT id FROM ratings WHERE user_id = ?", (sid,))
+                has_rated = cursor.fetchone()
+                
                 # Cek apakah sudah ditanya rating dalam 24 jam terakhir
                 cursor.execute("SELECT last_prompt_time FROM rating_flags WHERE session_id = ?", (sid,))
                 flag_row = cursor.fetchone()
                 can_prompt = True
-                if flag_row and flag_row["last_prompt_time"]:
+                
+                if has_rated:
+                    can_prompt = False
+                elif flag_row and flag_row["last_prompt_time"]:
                     try:
                         from datetime import datetime, timedelta
                         last_prompt = datetime.strptime(flag_row["last_prompt_time"], "%Y-%m-%d %H:%M:%S")

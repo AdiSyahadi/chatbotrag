@@ -93,11 +93,40 @@ async def public_chat(request: ChatRequest):
     gratitude_pattern = r'.*(makasih|terima kasih|thanks|terimakasih|oke makasih|ok sip|mantap).*'
     # Hanya trigger jika pesannya relatif pendek (<= 40 karakter) dan bukan pertanyaan (?)
     if len(request.message) <= 40 and "?" not in request.message and re.match(gratitude_pattern, request.message.strip(), re.IGNORECASE) and request.session_id:
-        set_session_status(request.session_id, "AWAITING_RATING")
-        reply_msg = "Sama-sama! 😊 Boleh minta waktunya sebentar? Silakan berikan penilaian Anda terhadap layanan Chatbot kami di bawah ini:"
-        add_message(request.session_id, "assistant", reply_msg)
-        total = len(get_all_messages(request.session_id))
-        return {"reply": reply_msg, "total": total, "show_rating_form": True}
+        from app.config import get_db_connection
+        from datetime import datetime, timedelta
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM ratings WHERE user_id = ?", (request.session_id,))
+        has_rated = cursor.fetchone()
+        
+        cursor.execute("SELECT last_prompt_time FROM rating_flags WHERE session_id = ?", (request.session_id,))
+        row = cursor.fetchone()
+        
+        can_prompt = True
+        if has_rated:
+            can_prompt = False
+        elif row and row["last_prompt_time"]:
+            try:
+                last_prompt = datetime.strptime(row["last_prompt_time"], "%Y-%m-%d %H:%M:%S")
+                if datetime.utcnow() - last_prompt < timedelta(hours=24):
+                    can_prompt = False
+            except Exception:
+                pass
+                
+        if can_prompt:
+            cursor.execute("INSERT OR REPLACE INTO rating_flags (session_id, last_prompt_time) VALUES (?, CURRENT_TIMESTAMP)", (request.session_id,))
+            conn.commit()
+            conn.close()
+            
+            set_session_status(request.session_id, "AWAITING_RATING")
+            reply_msg = "Sama-sama! 😊 Boleh minta waktunya sebentar? Silakan berikan penilaian Anda terhadap layanan Chatbot kami di bawah ini:"
+            add_message(request.session_id, "assistant", reply_msg)
+            total = len(get_all_messages(request.session_id))
+            return {"reply": reply_msg, "total": total, "show_rating_form": True}
+        else:
+            conn.close()
 
     try:
         rag_chain, retriever = build_rag_chain()
