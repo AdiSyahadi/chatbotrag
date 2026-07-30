@@ -1,9 +1,4 @@
 import os
-from langchain_community.document_loaders import (
-    PyPDFLoader,
-    TextLoader,
-    Docx2txtLoader,
-)
 from langchain_core.documents import Document
 
 
@@ -12,6 +7,12 @@ SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".txt"}
 
 def load_document(file_path: str) -> list[Document]:
     """Load PDF, DOCX, or TXT file and return list of LangChain Documents."""
+    from langchain_community.document_loaders import (
+        PyPDFLoader,
+        TextLoader,
+        Docx2txtLoader,
+    )
+    
     ext = os.path.splitext(file_path)[1].lower()
 
     if ext == ".pdf":

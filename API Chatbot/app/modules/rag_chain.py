@@ -1,13 +1,7 @@
-from langchain_openai import ChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
 from app.config import get_api_key, get_setting
 from app.modules.vectorstore import get_retriever
 from app.modules.conversation import format_history_for_prompt
 from app.routes.system_prompt import DEFAULT_SYSTEM_PROMPT
-from langfuse.langchain import CallbackHandler
 
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 
@@ -32,6 +26,12 @@ def format_docs(docs):
 
 def build_rag_chain():
     """Build RAG pipeline using LCEL: Retriever + Prompt + DeepSeek/Gemini LLM."""
+    from langchain_openai import ChatOpenAI
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    from langchain_core.prompts import ChatPromptTemplate
+    from langchain_core.output_parsers import StrOutputParser
+    from langchain_core.runnables import RunnablePassthrough
+
     api_key = get_api_key()
     if not api_key:
         raise ValueError("API key belum diatur. Silakan set di halaman Settings.")
@@ -62,7 +62,7 @@ def build_rag_chain():
 
     return rag_chain, retriever
 
-def get_langfuse_handler(session_id: str = None) -> CallbackHandler | None:
+def get_langfuse_handler(session_id: str = None):
     import os
     public_key = get_setting("langfuse_public_key")
     secret_key = get_setting("langfuse_secret_key")
@@ -73,6 +73,7 @@ def get_langfuse_handler(session_id: str = None) -> CallbackHandler | None:
         os.environ["LANGFUSE_SECRET_KEY"] = secret_key
         os.environ["LANGFUSE_HOST"] = host
         try:
+            from langfuse.langchain import CallbackHandler
             handler = CallbackHandler()
             return handler
         except Exception:

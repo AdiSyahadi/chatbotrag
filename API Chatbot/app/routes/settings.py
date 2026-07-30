@@ -1,8 +1,6 @@
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from langchain_openai import ChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI
 from app.config import get_api_key, set_api_key, get_setting, set_setting
 
 
@@ -15,6 +13,9 @@ DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 
 def validate_gemini_key(api_key: str) -> str | None:
     """Test API key dengan request ringan. Return None jika valid, error message jika invalid."""
+    from langchain_openai import ChatOpenAI
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    
     try:
         if api_key.startswith("AIzaSy"):
             # Gunakan Gemini

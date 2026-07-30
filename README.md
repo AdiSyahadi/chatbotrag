@@ -6,6 +6,7 @@ ChatBot cerdas untuk WhatsApp yang ditenagai oleh **Gemini AI** / **DeepSeek AI*
 - **Integrasi Multi-LLM**: Mendukung penggunaan **Gemini AI** (google-genai) dan **DeepSeek AI** (via OpenAI SDK) untuk respon yang cerdas.
 - **RAG (Retrieval-Augmented Generation)**: Membaca dokumen PDF/DOCX yang di-upload dan menjawab pertanyaan spesifik berdasarkan pengetahuan di dalam dokumen tersebut.
 - **Local Embeddings**: Menggunakan model `all-MiniLM-L6-v2` dari HuggingFace yang berjalan 100% lokal secara gratis dan cepat (tidak memotong kuota API).
+- **Fast Startup (Lazy Imports)**: Arsitektur backend dioptimalkan menggunakan teknik *Lazy Loading*. Pemuatan pustaka ML raksasa (Transformers, LangChain) dilakukan secara *On-Demand* sehingga server Uvicorn menyala secepat kilat (di bawah 1 detik).
 - **Integrasi Webhook SAAS WA API**: Menerima _webhook_ langsung dari instance SAAS WA API dan membalas pesan secara otomatis.
 - **UI Logs Real-time**: Memantau lalu lintas pesan masuk dan keluar secara langsung dari browser.
 - **Support LID (Linked Identity)**: Mampu menerima dan merespon pesan dari nomor-nomor baru berformat LID.

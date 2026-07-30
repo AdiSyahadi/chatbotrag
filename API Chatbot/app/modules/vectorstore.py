@@ -1,5 +1,4 @@
-import chromadb
-from langchain_community.vectorstores import Chroma
+
 from langchain_core.documents import Document
 from app.config import VECTORSTORE_DIR, DEFAULT_TOP_K, get_setting
 from app.modules.embedding import get_embedding
@@ -7,6 +6,7 @@ from app.modules.embedding import get_embedding
 
 def save_to_vectorstore(docs: list[Document]):
     """Save document chunks to ChromaDB vectorstore."""
+    from langchain_community.vectorstores import Chroma
     embedding = get_embedding()
     vectorstore = Chroma.from_documents(
         documents=docs,
@@ -18,6 +18,7 @@ def save_to_vectorstore(docs: list[Document]):
 
 def get_retriever():
     """Get retriever from existing ChromaDB vectorstore."""
+    from langchain_community.vectorstores import Chroma
     embedding = get_embedding()
     top_k = int(get_setting("top_k", str(DEFAULT_TOP_K)))
 
@@ -34,6 +35,7 @@ def get_retriever():
 
 def get_vectorstore():
     """Get the raw ChromaDB vectorstore instance."""
+    from langchain_community.vectorstores import Chroma
     embedding = get_embedding()
     vectorstore = Chroma(
         persist_directory=VECTORSTORE_DIR,
@@ -44,6 +46,7 @@ def get_vectorstore():
 
 def delete_from_vectorstore(document_id: int) -> int:
     """Delete all chunks belonging to a document from ChromaDB vectorstore."""
+    import chromadb
     client = chromadb.PersistentClient(path=VECTORSTORE_DIR)
     collections = client.list_collections()
 

@@ -1,10 +1,11 @@
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from app.config import DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP, get_setting
 
 
 def split_documents(documents: list[Document]) -> list[Document]:
     """Split documents into chunks using RecursiveCharacterTextSplitter."""
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+    
     chunk_size = int(get_setting("chunk_size", str(DEFAULT_CHUNK_SIZE)))
     chunk_overlap = int(get_setting("chunk_overlap", str(DEFAULT_CHUNK_OVERLAP)))
 

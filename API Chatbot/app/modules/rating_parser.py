@@ -1,8 +1,5 @@
 import json
 import os
-from langchain_openai import ChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.prompts import PromptTemplate
 from app.config import get_api_key
 
 def parse_rating_with_llm(user_message: str):
@@ -10,6 +7,10 @@ def parse_rating_with_llm(user_message: str):
     Parses a user's message to extract a rating and a review text.
     Returns a dictionary: {"is_rating": bool, "rating": int|null, "review_text": str|null}
     """
+    from langchain_openai import ChatOpenAI
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    from langchain_core.prompts import PromptTemplate
+    
     api_key = get_api_key()
     if not api_key:
         return {"is_rating": False, "rating": None, "review_text": None}

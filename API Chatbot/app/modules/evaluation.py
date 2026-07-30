@@ -1,17 +1,17 @@
 import json
-from datasets import Dataset
-from ragas import evaluate
-from ragas.metrics import faithfulness, answer_relevancy
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_openai import ChatOpenAI
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from langchain_huggingface import HuggingFaceEmbeddings
 from app.config import get_db_connection, get_api_key
 
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 
 def run_ragas_evaluation(limit: int = 10) -> dict:
     """Run RAGAS evaluation on the latest N evaluations from the database."""
+    from datasets import Dataset
+    from ragas import evaluate
+    from ragas.metrics import faithfulness, answer_relevancy
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    from langchain_openai import ChatOpenAI
+    from langchain_google_genai import GoogleGenerativeAIEmbeddings
+    from langchain_huggingface import HuggingFaceEmbeddings
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT question, answer, source_documents FROM evaluations ORDER BY id DESC LIMIT ?", (limit,))
