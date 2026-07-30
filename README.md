@@ -45,8 +45,9 @@ Buka terminal **pertama**, lalu jalankan API Backend:
 cd "API Chatbot"
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-_(Server API akan berjalan di port `8000` atau copy paste ini :
- http://127.0.0.1:8000/)_
+Server API akan berjalan di port `8000` atau copy paste ini untuk akses:
+ http://127.0.0.1:8000/
+
 
 Buka terminal **kedua**, lalu jalankan Halaman Depan (Landing Page):
 ```bash
