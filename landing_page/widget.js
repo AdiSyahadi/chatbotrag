@@ -291,6 +291,7 @@
             }
         };
         xhr.send(JSON.stringify({
+            session_id: _sessionId,
             rating: selectedRating,
             review_text: textarea.value.trim()
         }));

@@ -19,6 +19,21 @@ def process_whatsapp_message(payload: dict):
             return
 
         data = payload.get("data", {})
+        
+        # Deduplication check
+        message_id = data.get("id")
+        if message_id:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT message_id FROM processed_webhooks WHERE message_id = ?", (message_id,))
+            if cursor.fetchone():
+                print(f"Skipping duplicate message: {message_id}")
+                conn.close()
+                return
+            cursor.execute("INSERT INTO processed_webhooks (message_id) VALUES (?)", (message_id,))
+            conn.commit()
+            conn.close()
+            
         chat_jid = data.get("chat_jid") or data.get("from", "")
         # SAAS WA API uses 'type' for message type, not 'message_type'
         message_type = data.get("type") or data.get("message_type", "")

@@ -10,21 +10,24 @@ from app.modules.auth import get_current_user
 router = APIRouter()
 
 class ReviewSubmit(BaseModel):
+    session_id: Optional[str] = None
     rating: int = Field(..., ge=1, le=5)
     review_text: Optional[str] = ""
 
 @router.post("/v1/rating")
 @limiter.limit("2/minute")
 async def submit_rating(request: Request, review: ReviewSubmit):
-    # Dapatkan IP pengunjung web sebagai user_id (atau disamarkan)
-    client_ip = request.client.host if request.client else "WEB_USER"
+    # Gunakan session_id jika ada, jika tidak fallback ke IP
+    user_id = review.session_id if review.session_id else (request.client.host if request.client else "WEB_USER")
     
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
         "INSERT INTO ratings (user_id, rating, review_text, source) VALUES (?, ?, ?, ?)",
-        (client_ip, review.rating, review.review_text, "WEB")
+        (user_id, review.rating, review.review_text, "WEB")
     )
+    if review.session_id:
+        cursor.execute("UPDATE sessions SET status = 'RESOLVED' WHERE session_id = ?", (review.session_id,))
     conn.commit()
     conn.close()
     

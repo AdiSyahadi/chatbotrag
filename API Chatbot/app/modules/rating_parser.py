@@ -40,12 +40,12 @@ Tugas Anda:
 2. Tentukan apakah pesan tersebut berisi umpan balik kepuasan (rating), ATAU apakah itu pertanyaan/percakapan baru (misalnya pengguna malah bertanya syarat KTP, dsb).
 3. Jika pengguna bertanya tentang BAGAIMANA CARA MENGISI RATING, anggap itu pertanyaan baru (bukan memberi rating).
 4. Jika itu adalah ulasan/rating:
-   - Ekstrak angkanya (1-5). Jika pengguna tidak menyebut angka tapi sangat memuji, berikan 5. Jika sangat mengeluh, berikan 1.
-   - Ekstrak teks komentarnya (jika ada, selain angkanya).
+   - Ekstrak angkanya (1-5). Jika pengguna tidak menyebut angka tapi sangat memuji, berikan 5. Jika sangat mengeluh, berikan 1. Pastikan nilai ini HANYA angka (Integer) atau null.
+   - Ekstrak teks komentarnya (jika ada, selain angkanya). Jika tidak ada teks tambahan selain angka, kembalikan null.
 5. Output HARUS murni berformat JSON tanpa markdown, dengan struktur persis seperti ini:
 {{
     "is_rating": true/false,
-    "rating": <angka 1-5 atau null>,
+    "rating": <angka 1-5 atau null (tipe data numerik, BUKAN string)>,
     "review_text": "<teks komentar atau null>"
 }}
 
@@ -64,6 +64,10 @@ Output: {{"is_rating": false, "rating": null, "review_text": null}}
 Contoh 4:
 Pesan: "Makasih"
 Output: {{"is_rating": true, "rating": null, "review_text": "Makasih"}} (Biarkan rating null jika sentimen netral dan tanpa angka)
+
+Contoh 5:
+Pesan: "5"
+Output: {{"is_rating": true, "rating": 5, "review_text": null}}
 """
     )
     
@@ -92,12 +96,27 @@ Output: {{"is_rating": true, "rating": null, "review_text": "Makasih"}} (Biarkan
             conn.close()
         except Exception as ex:
             print("Failed to debug log:", ex)
+            
+        rating_raw = result.get("rating")
+        rating_val = None
+        if rating_raw is not None:
+            try:
+                import re
+                match = re.search(r'\d+', str(rating_raw))
+                if match:
+                    rating_val = int(match.group())
+            except Exception:
+                pass
+                
+        review_text = result.get("review_text")
+        if review_text == "" or review_text == "null":
+            review_text = None
         
         # Pastikan tipe data aman
         return {
             "is_rating": bool(result.get("is_rating", False)),
-            "rating": int(result.get("rating")) if result.get("rating") is not None else None,
-            "review_text": result.get("review_text")
+            "rating": rating_val,
+            "review_text": review_text
         }
     except Exception as e:
         print(f"Error parsing rating with LLM: {e}")

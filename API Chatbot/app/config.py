@@ -131,6 +131,13 @@ def init_database():
             samples_count INTEGER
         )
     """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS processed_webhooks (
+            message_id TEXT PRIMARY KEY,
+            processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
     
     # Set default langfuse keys if not exist
     cursor.execute("SELECT value FROM settings WHERE key = 'langfuse_public_key'")
