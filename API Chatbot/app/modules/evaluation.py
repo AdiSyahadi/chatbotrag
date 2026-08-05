@@ -56,29 +56,35 @@ def run_ragas_evaluation(limit: int = 10) -> dict:
         llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=api_key)
         embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=api_key)
     else:
-        # Wrap ChatOpenAI to remove 'n' parameter because DeepSeek API rejects n > 1
-        class DeepSeekChatOpenAI(ChatOpenAI):
-            def _generate(self, messages, stop=None, run_manager=None, **kwargs):
-                n = kwargs.pop('n', 1)
-                res = super()._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
-                if n > 1 and res.generations:
-                    res.generations = res.generations * n
-                return res
-            
-            async def _agenerate(self, messages, stop=None, run_manager=None, **kwargs):
-                n = kwargs.pop('n', 1)
-                res = await super()._agenerate(messages, stop=stop, run_manager=run_manager, **kwargs)
-                if n > 1 and res.generations:
-                    res.generations = res.generations * n
-                return res
-
-        llm = DeepSeekChatOpenAI(
-            model="deepseek-v4-flash",
-            openai_api_key=api_key, 
-            openai_api_base=DEEPSEEK_BASE_URL
-        )
-        # Fallback to local embeddings if using DeepSeek since it doesn't have an embedding API mapped here by default
+        # Fallback to local embeddings for non-Google LLMs
         embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        
+        if api_key.startswith("gsk_"):
+            llm = ChatOpenAI(model="llama3-8b-8192", openai_api_key=api_key, openai_api_base="https://api.groq.com/openai/v1")
+        elif api_key.startswith("sk-") and len(api_key) == 35:
+            # Wrap ChatOpenAI to remove 'n' parameter because DeepSeek API rejects n > 1
+            class DeepSeekChatOpenAI(ChatOpenAI):
+                def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+                    n = kwargs.pop('n', 1)
+                    res = super()._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
+                    if n > 1 and res.generations:
+                        res.generations = res.generations * n
+                    return res
+                
+                async def _agenerate(self, messages, stop=None, run_manager=None, **kwargs):
+                    n = kwargs.pop('n', 1)
+                    res = await super()._agenerate(messages, stop=stop, run_manager=run_manager, **kwargs)
+                    if n > 1 and res.generations:
+                        res.generations = res.generations * n
+                    return res
+                    
+            llm = DeepSeekChatOpenAI(
+                model="deepseek-chat",
+                openai_api_key=api_key, 
+                openai_api_base=DEEPSEEK_BASE_URL
+            )
+        else:
+            llm = ChatOpenAI(model="gpt-4o-mini", openai_api_key=api_key)
 
     # Setup RAGAS metrics constraints for DeepSeek
     answer_relevancy.strictness = 1

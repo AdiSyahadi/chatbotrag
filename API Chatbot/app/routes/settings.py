@@ -24,12 +24,27 @@ def validate_gemini_key(api_key: str) -> str | None:
                 google_api_key=api_key,
                 max_tokens=5,
             )
-        else:
-            # Gunakan DeepSeek (default)
+        elif api_key.startswith("gsk_"):
+            # Groq
             llm = ChatOpenAI(
-                model="deepseek-v4-flash",
+                model="llama3-8b-8192",
+                openai_api_key=api_key,
+                openai_api_base="https://api.groq.com/openai/v1",
+                max_tokens=5,
+            )
+        elif api_key.startswith("sk-") and len(api_key) == 35:
+            # DeepSeek
+            llm = ChatOpenAI(
+                model="deepseek-chat",
                 openai_api_key=api_key,
                 openai_api_base=DEEPSEEK_BASE_URL,
+                max_tokens=5,
+            )
+        else:
+            # Default to standard OpenAI
+            llm = ChatOpenAI(
+                model="gpt-4o-mini",
+                openai_api_key=api_key,
                 max_tokens=5,
             )
             

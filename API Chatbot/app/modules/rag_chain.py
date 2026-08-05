@@ -42,11 +42,24 @@ def build_rag_chain():
             google_api_key=api_key,
             temperature=0.3,
         )
-    else:
+    elif api_key.startswith("gsk_"):
         llm = ChatOpenAI(
-            model="deepseek-v4-flash",
+            model="llama3-8b-8192",
+            openai_api_key=api_key,
+            openai_api_base="https://api.groq.com/openai/v1",
+            temperature=0.3,
+        )
+    elif api_key.startswith("sk-") and len(api_key) == 35:
+        llm = ChatOpenAI(
+            model="deepseek-chat",
             openai_api_key=api_key,
             openai_api_base=DEEPSEEK_BASE_URL,
+            temperature=0.3,
+        )
+    else:
+        llm = ChatOpenAI(
+            model="gpt-4o-mini",
+            openai_api_key=api_key,
             temperature=0.3,
         )
 
