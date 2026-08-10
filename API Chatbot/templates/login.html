@@ -115,7 +115,6 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    localStorage.setItem('access_token', data.access_token);
                     window.location.href = '/admin/dashboard';
                 } else {
                     const errData = await response.json();

@@ -33,14 +33,8 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
-    const token = localStorage.getItem('access_token');
-
     try {
-        const response = await fetch('/api/admin/reviews', {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
+        const response = await fetch('/api/admin/reviews');
 
         if (response.status === 401) {
             localStorage.removeItem('access_token');

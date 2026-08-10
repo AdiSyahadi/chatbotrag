@@ -97,14 +97,10 @@
     <script>
         // Global logic for Topbar and Logout
         document.addEventListener('DOMContentLoaded', () => {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                window.location.href = '/login';
-                return;
-            }
-            
             const topbar = document.getElementById('appTopbar');
-            if (topbar) topbar.style.display = 'flex';
+            if (topbar) {
+                topbar.style.display = 'flex';
+            }
         });
 
         function toggleUserMenu() {
@@ -125,8 +121,12 @@
             }
         }
 
-        function performLogout() {
-            localStorage.removeItem('access_token');
+        async function performLogout() {
+            try {
+                await fetch('/api/auth/logout', { method: 'POST' });
+            } catch (e) {
+                console.error(e);
+            }
             window.location.href = '/login';
         }
     </script>

@@ -9,8 +9,32 @@ import bcrypt
 
 from app.config import get_db_connection, get_setting, set_setting
 
+from fastapi.security.utils import get_authorization_scheme_param
+from fastapi import Request
+
+class OAuth2PasswordBearerWithCookie(OAuth2PasswordBearer):
+    async def __call__(self, request: Request) -> str | None:
+        authorization = request.headers.get("Authorization")
+        scheme, param = get_authorization_scheme_param(authorization)
+        
+        # Fallback to Cookie
+        if not authorization or scheme.lower() != "bearer":
+            authorization = request.cookies.get("access_token")
+            scheme, param = get_authorization_scheme_param(authorization)
+            
+        if not authorization or scheme.lower() != "bearer":
+            if self.auto_error:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Not authenticated",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            else:
+                return None
+        return param
+
 # OAuth2 scheme
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
+oauth2_scheme = OAuth2PasswordBearerWithCookie(tokenUrl="/api/auth/token")
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 # 24 hours

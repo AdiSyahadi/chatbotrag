@@ -38,8 +38,26 @@ async def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
+    from fastapi.responses import JSONResponse
+    
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user["username"]}, expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    
+    response = JSONResponse(content={"access_token": access_token, "token_type": "bearer", "message": "Login berhasil"})
+    response.set_cookie(
+        key="access_token",
+        value=f"Bearer {access_token}",
+        httponly=True,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        samesite="lax",
+    )
+    return response
+
+@router.post("/logout")
+async def logout():
+    from fastapi.responses import JSONResponse
+    response = JSONResponse(content={"message": "Logout berhasil"})
+    response.delete_cookie("access_token")
+    return response

@@ -225,10 +225,7 @@
 
 {% block scripts %}
 <script>
-    const token = localStorage.getItem('access_token');
-    const authHeaders = {
-        'Authorization': 'Bearer ' + token
-    };
+    const authHeaders = {};
 
     let currentSessionId = null;
     let fetchInterval = null;
