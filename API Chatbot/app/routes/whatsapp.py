@@ -95,6 +95,10 @@ def process_whatsapp_message(payload: dict):
                     )
                     conn.commit()
                     conn.close()
+                    
+                    # Record the user's original rating message into history
+                    add_message(sender_log_str, "user", content)
+                    
                     set_session_status(sender_log_str, "RESOLVED")
                     answer = "Terima kasih atas ulasan Anda! Penilaian Anda sangat berarti bagi kami."
                     add_message(sender_log_str, "bot", answer)

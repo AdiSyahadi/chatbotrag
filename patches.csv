@@ -16,3 +16,4 @@ P014,Fix WhatsApp rating not saving to DB,"app/modules/rating_parser.py, app/rou
 P015,Fix infinite rating request loop,"app/routes/whatsapp.py, app/routes/public_api.py",DONE,Verified by changing status to RESOLVED after rating and resetting to BOT_HANDLING on new messages
 P016,Fix rating parser failing for DeepSeek API keys,app/modules/rating_parser.py,DONE,Verified by porting the AIzaSy detection logic from rag_chain.py to use ChatOpenAI when needed
 P017,Fix WhatsApp permanent rating block and hanging sessions,"app/routes/whatsapp.py, app/modules/conversation.py",DONE,Verified by code inspection and updating regex and cooldown logic to 7 days
+P018,Fix fatal logic of missing chat history and port P017 to Web Widget,"app/routes/whatsapp.py, app/routes/public_api.py",DONE,Verified by adding add_message in AWAITING_RATING and porting logic

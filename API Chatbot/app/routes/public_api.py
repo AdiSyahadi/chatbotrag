@@ -66,6 +66,9 @@ async def public_chat(request: ChatRequest):
                 conn.commit()
                 conn.close()
                 
+                # Record the user's original rating message into history
+                add_message(request.session_id, "user", request.message)
+                
                 set_session_status(request.session_id, "RESOLVED")
                 reply_msg = "Terima kasih banyak atas ulasan Anda! Penilaian Anda sangat berarti bagi kami. 😊"
                 add_message(request.session_id, "assistant", reply_msg)
@@ -90,31 +93,40 @@ async def public_chat(request: ChatRequest):
 
     import re
     # Gratitude trigger for automatic rating
-    gratitude_pattern = r'.*(makasih|terima kasih|thanks|terimakasih|oke makasih|ok sip|mantap).*'
+    gratitude_pattern = r'(makasih|terima kasih|thanks|terima\s*kasih|oke makasih|ok sip|mantap)'
     # Hanya trigger jika pesannya relatif pendek (<= 40 karakter) dan bukan pertanyaan (?)
-    if len(request.message) <= 40 and "?" not in request.message and re.match(gratitude_pattern, request.message.strip(), re.IGNORECASE) and request.session_id:
+    if len(request.message) <= 40 and "?" not in request.message and re.search(gratitude_pattern, request.message.strip(), re.IGNORECASE) and request.session_id:
         from app.config import get_db_connection
         from datetime import datetime, timedelta
         
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT id FROM ratings WHERE user_id = ?", (request.session_id,))
-        has_rated = cursor.fetchone()
-        
-        cursor.execute("SELECT last_prompt_time FROM rating_flags WHERE session_id = ?", (request.session_id,))
-        row = cursor.fetchone()
         
         can_prompt = True
-        if has_rated:
-            can_prompt = False
-        elif row and row["last_prompt_time"]:
+        
+        # Cek apakah sudah pernah rating sukses dalam 7 hari terakhir
+        cursor.execute("SELECT created_at FROM ratings WHERE user_id = ? ORDER BY created_at DESC LIMIT 1", (request.session_id,))
+        last_rating_row = cursor.fetchone()
+        
+        if last_rating_row and last_rating_row["created_at"]:
             try:
-                last_prompt = datetime.strptime(row["last_prompt_time"], "%Y-%m-%d %H:%M:%S")
-                if datetime.utcnow() - last_prompt < timedelta(hours=24):
+                last_rating_time = datetime.strptime(last_rating_row["created_at"], "%Y-%m-%d %H:%M:%S")
+                if datetime.utcnow() - last_rating_time < timedelta(days=7):
                     can_prompt = False
             except Exception:
                 pass
                 
+        if can_prompt:
+            cursor.execute("SELECT last_prompt_time FROM rating_flags WHERE session_id = ?", (request.session_id,))
+            row = cursor.fetchone()
+            if row and row["last_prompt_time"]:
+                try:
+                    last_prompt = datetime.strptime(row["last_prompt_time"], "%Y-%m-%d %H:%M:%S")
+                    if datetime.utcnow() - last_prompt < timedelta(hours=24):
+                        can_prompt = False
+                except Exception:
+                    pass
+                    
         if can_prompt:
             cursor.execute("INSERT OR REPLACE INTO rating_flags (session_id, last_prompt_time) VALUES (?, CURRENT_TIMESTAMP)", (request.session_id,))
             conn.commit()
