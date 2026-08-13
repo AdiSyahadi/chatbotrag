@@ -164,7 +164,15 @@ async def monitor_sessions():
             conn = get_db_connection()
             cursor = conn.cursor()
             
-            # Cari sesi yang lebih dari TTL (3 menit) dan belum pernah diminta rating (hanya yang BOT_HANDLING atau AGENT_HANDLING)
+            # 1. Cleanup AWAITING_RATING yang sudah idle > 5 menit (300 detik)
+            cursor.execute("""
+                UPDATE sessions 
+                SET status='RESOLVED', last_activity=CURRENT_TIMESTAMP 
+                WHERE status = 'AWAITING_RATING' 
+                AND strftime('%s', 'now') - strftime('%s', last_activity) > 300
+            """)
+            
+            # 2. Cari sesi yang lebih dari TTL (3 menit) dan belum pernah diminta rating (hanya yang BOT_HANDLING atau AGENT_HANDLING)
             cursor.execute("""
                 SELECT session_id, status FROM sessions 
                 WHERE strftime('%s', 'now') - strftime('%s', last_activity) > ? 
@@ -181,25 +189,33 @@ async def monitor_sessions():
             for s in idle_sessions:
                 sid = s['session_id']
                 
-                # Cek apakah sudah pernah memberi rating
-                cursor.execute("SELECT id FROM ratings WHERE user_id = ?", (sid,))
-                has_rated = cursor.fetchone()
-                
-                # Cek apakah sudah ditanya rating dalam 24 jam terakhir
-                cursor.execute("SELECT last_prompt_time FROM rating_flags WHERE session_id = ?", (sid,))
-                flag_row = cursor.fetchone()
                 can_prompt = True
                 
-                if has_rated:
-                    can_prompt = False
-                elif flag_row and flag_row["last_prompt_time"]:
+                # Cek apakah sudah pernah rating sukses dalam 7 hari terakhir
+                cursor.execute("SELECT created_at FROM ratings WHERE user_id = ? ORDER BY created_at DESC LIMIT 1", (sid,))
+                last_rating_row = cursor.fetchone()
+                
+                from datetime import datetime, timedelta
+                
+                if last_rating_row and last_rating_row["created_at"]:
                     try:
-                        from datetime import datetime, timedelta
-                        last_prompt = datetime.strptime(flag_row["last_prompt_time"], "%Y-%m-%d %H:%M:%S")
-                        if datetime.utcnow() - last_prompt < timedelta(hours=24):
+                        last_rating_time = datetime.strptime(last_rating_row["created_at"], "%Y-%m-%d %H:%M:%S")
+                        if datetime.utcnow() - last_rating_time < timedelta(days=7):
                             can_prompt = False
                     except Exception:
                         pass
+                
+                if can_prompt:
+                    # Cek flag 24 jam
+                    cursor.execute("SELECT last_prompt_time FROM rating_flags WHERE session_id = ?", (sid,))
+                    flag_row = cursor.fetchone()
+                    if flag_row and flag_row["last_prompt_time"]:
+                        try:
+                            last_prompt = datetime.strptime(flag_row["last_prompt_time"], "%Y-%m-%d %H:%M:%S")
+                            if datetime.utcnow() - last_prompt < timedelta(hours=24):
+                                can_prompt = False
+                        except Exception:
+                            pass
                 
                 if can_prompt:
                     # Ubah status ke AWAITING_RATING agar pesan berikutnya ditangkap sebagai rating

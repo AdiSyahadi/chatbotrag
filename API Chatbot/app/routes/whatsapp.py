@@ -119,27 +119,36 @@ def process_whatsapp_message(payload: dict):
                     return
                 else:
                     # Gratitude trigger
-                    gratitude_pattern = r'.*(makasih|terima kasih|thanks|terimakasih|oke makasih|ok sip|mantap).*'
+                    gratitude_pattern = r'(makasih|terima kasih|thanks|terima\s*kasih|oke makasih|ok sip|mantap)'
                     # Hanya trigger jika pesannya relatif pendek dan bukan pertanyaan
-                    if len(content) <= 40 and "?" not in content and re.match(gratitude_pattern, content.strip(), re.IGNORECASE):
+                    if len(content) <= 40 and "?" not in content and re.search(gratitude_pattern, content.strip(), re.IGNORECASE):
                         conn = get_db_connection()
                         cursor = conn.cursor()
-                        cursor.execute("SELECT id FROM ratings WHERE user_id = ?", (sender_log_str,))
-                        has_rated = cursor.fetchone()
-                        
-                        cursor.execute("SELECT last_prompt_time FROM rating_flags WHERE session_id = ?", (sender_log_str,))
-                        row = cursor.fetchone()
                         
                         can_prompt = True
-                        if has_rated:
-                            can_prompt = False
-                        elif row and row["last_prompt_time"]:
+                        
+                        # Cek apakah sudah pernah rating sukses dalam 7 hari terakhir
+                        cursor.execute("SELECT created_at FROM ratings WHERE user_id = ? ORDER BY created_at DESC LIMIT 1", (sender_log_str,))
+                        last_rating_row = cursor.fetchone()
+                        
+                        if last_rating_row and last_rating_row["created_at"]:
                             try:
-                                last_prompt = datetime.strptime(row["last_prompt_time"], "%Y-%m-%d %H:%M:%S")
-                                if datetime.utcnow() - last_prompt < timedelta(hours=24):
+                                last_rating_time = datetime.strptime(last_rating_row["created_at"], "%Y-%m-%d %H:%M:%S")
+                                if datetime.utcnow() - last_rating_time < timedelta(days=7):
                                     can_prompt = False
                             except Exception:
                                 pass
+                                
+                        if can_prompt:
+                            cursor.execute("SELECT last_prompt_time FROM rating_flags WHERE session_id = ?", (sender_log_str,))
+                            row = cursor.fetchone()
+                            if row and row["last_prompt_time"]:
+                                try:
+                                    last_prompt = datetime.strptime(row["last_prompt_time"], "%Y-%m-%d %H:%M:%S")
+                                    if datetime.utcnow() - last_prompt < timedelta(hours=24):
+                                        can_prompt = False
+                                except Exception:
+                                    pass
                         
                         if can_prompt:
                             cursor.execute("INSERT OR REPLACE INTO rating_flags (session_id, last_prompt_time) VALUES (?, CURRENT_TIMESTAMP)", (sender_log_str,))
