@@ -83,41 +83,41 @@ app.include_router(evaluation.router, tags=["Evaluation"], dependencies=admin_de
 
 @app.get("/", response_class=HTMLResponse, dependencies=page_dependency)
 async def page_chat(request: Request):
-    return templates.TemplateResponse("chat.html", {"request": request})
+    return templates.TemplateResponse(request, "chat.html", {"request": request})
 
 
 @app.get("/upload", response_class=HTMLResponse, dependencies=page_dependency)
 async def page_upload(request: Request):
-    return templates.TemplateResponse("upload.html", {"request": request})
+    return templates.TemplateResponse(request, "upload.html", {"request": request})
 
 
 @app.get("/documents", response_class=HTMLResponse, dependencies=page_dependency)
 async def page_documents(request: Request):
-    return templates.TemplateResponse("documents.html", {"request": request})
+    return templates.TemplateResponse(request, "documents.html", {"request": request})
 
 
 @app.get("/settings", response_class=HTMLResponse, dependencies=page_dependency)
 async def page_settings(request: Request):
-    return templates.TemplateResponse("settings.html", {"request": request})
+    return templates.TemplateResponse(request, "settings.html", {"request": request})
 
 
 @app.get("/system-prompt", response_class=HTMLResponse, dependencies=page_dependency)
 async def page_system_prompt(request: Request):
-    return templates.TemplateResponse("system_prompt.html", {"request": request})
+    return templates.TemplateResponse(request, "system_prompt.html", {"request": request})
 
 
 @app.get("/embed", response_class=HTMLResponse, dependencies=page_dependency)
 async def page_embed(request: Request):
-    return templates.TemplateResponse("embed.html", {"request": request})
+    return templates.TemplateResponse(request, "embed.html", {"request": request})
 
 @app.get("/login", response_class=HTMLResponse)
 async def page_login(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(request, "login.html", {"request": request})
 
 @app.get("/admin/dashboard", response_class=HTMLResponse, dependencies=page_dependency)
 async def page_admin_dashboard(request: Request):
-    return templates.TemplateResponse("admin_dashboard.html", {"request": request, "active_page": "admin_dashboard"})
+    return templates.TemplateResponse(request, "admin_dashboard.html", {"request": request, "active_page": "admin_dashboard"})
 
 @app.get("/admin/reviews", response_class=HTMLResponse, dependencies=page_dependency)
 async def page_admin_reviews(request: Request):
-    return templates.TemplateResponse("reviews.html", {"request": request, "active_page": "admin_reviews"})
+    return templates.TemplateResponse(request, "reviews.html", {"request": request, "active_page": "admin_reviews"})

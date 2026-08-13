@@ -22,3 +22,4 @@ P020,Fix Frontend-Backend Integration UI state missing and secure exposed secret
 P021,Fix Rating broken access control and idempotency and Frontend Error UX,"app/routes/reviews.py, landing_page/widget.js",DONE,Verified by adding AWAITING_RATING state check in backend and inline div error in widget
 P022,Fix WA Webhook deduplication concurrency crash and database connection leaks,"app/routes/whatsapp.py",DONE,Verified by adding INSERT OR IGNORE and try-finally db close blocks
 P023,Rewrite README to Enterprise level with Web Widget and RAGAS documentation,"README.md",DONE,Verified by completely overhauling the README structure
+P024,Fix TemplateResponse signature for FastAPI 0.100+ (Starlette 0.28+),app/main.py,DONE,Verified by passing request as positional argument
