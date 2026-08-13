@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Request, BackgroundTasks
 from app.config import get_setting, get_api_key, get_db_connection
-from app.modules.rag_chain import build_rag_chain, build_question_with_history, get_langfuse_handler
+from app.modules.rag_chain import generate_rag_response
 from app.modules.conversation import get_history, add_message, get_session, set_session_status, detect_handoff_intent
 from app.modules.logger import chat_logger
 from app.modules.wa_sender import send_whatsapp_message
@@ -176,26 +176,8 @@ def process_whatsapp_message(payload: dict):
                             
                     # Call RAG to get the answer
                 try:
-                    # 1. Fetch history for this specific sender
-                    history = get_history(sender_log_str)
-                    # 2. Inject history into the question content
-                    content_with_history = build_question_with_history(content, history)
-                    
-                    rag_chain, retriever = build_rag_chain()
-                    # Setup Langfuse handler
-                    lf_handler = get_langfuse_handler(session_id=sender_log_str)
-                    callbacks = [lf_handler] if lf_handler else []
+                    answer, source_docs = generate_rag_response(content, sender_log_str)
 
-                    from langfuse import propagate_attributes
-                    with propagate_attributes(session_id=sender_log_str):
-                        # Get answer from chain using context-injected question
-                        answer = rag_chain.invoke(
-                            content_with_history, 
-                            config={
-                                "callbacks": callbacks
-                            }
-                        )
-                    
                     # 3. Save memory for the next conversation
                     add_message(sender_log_str, "user", content)
                     add_message(sender_log_str, "assistant", answer)

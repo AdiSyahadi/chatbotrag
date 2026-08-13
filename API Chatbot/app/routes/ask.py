@@ -3,7 +3,7 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from app.config import get_api_key
-from app.modules.rag_chain import build_rag_chain, build_question_with_history, get_langfuse_handler
+from app.modules.rag_chain import generate_rag_response
 from app.modules.conversation import get_history, add_message, get_session, set_session_status, detect_handoff_intent
 from app.modules.evaluator import log_evaluation, calculate_similarity_score
 
@@ -50,29 +50,8 @@ async def ask_question(request: AskRequest):
             add_message(request.session_id, "bot", handoff_msg)
             return {"answer": handoff_msg, "sources": [], "similarity_score": 0, "response_time": 0}
 
-    # Build question with conversation history if session exists
-    history = get_history(request.session_id) if request.session_id else []
-    enriched_question = build_question_with_history(request.question, history)
-
     try:
-        rag_chain, retriever = build_rag_chain()
-
-        # Get source documents from retriever (use original question for better retrieval)
-        source_docs = retriever.invoke(request.question)
-
-        # Setup Langfuse handler
-        lf_handler = get_langfuse_handler(session_id=request.session_id or "web_chat")
-        callbacks = [lf_handler] if lf_handler else []
-
-        from langfuse import propagate_attributes
-        with propagate_attributes(session_id=request.session_id or "web_chat"):
-            # Get answer from chain (use enriched question with history for context-aware answer)
-            answer = rag_chain.invoke(
-                enriched_question, 
-                config={
-                    "callbacks": callbacks
-                }
-            )
+        answer, source_docs = generate_rag_response(request.question, request.session_id)
     except Exception as e:
         return JSONResponse(
             status_code=500,

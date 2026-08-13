@@ -29,7 +29,7 @@ evaluation_state = {
 
 @router.get("/admin/evaluasi", response_class=HTMLResponse)
 async def page_evaluasi(request: Request):
-    return templates.TemplateResponse("evaluasi.html", {"request": request, "active_page": "admin_evaluasi"})
+    return templates.TemplateResponse(request, "evaluasi.html", {"request": request, "active_page": "admin_evaluasi"})
 
 @router.get("/api/evaluasi/metrics")
 async def get_metrics():

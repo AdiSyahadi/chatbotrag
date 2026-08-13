@@ -3,8 +3,8 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from app.config import get_api_key
-from app.modules.rag_chain import build_rag_chain, build_question_with_history, get_langfuse_handler
-from app.modules.conversation import get_history, add_message, get_session, set_session_status, detect_handoff_intent, get_all_messages
+from app.modules.rag_chain import generate_rag_response
+from app.modules.conversation import add_message, get_session, set_session_status, detect_handoff_intent, get_all_messages
 from app.modules.evaluator import log_evaluation, calculate_similarity_score
 
 
@@ -87,9 +87,6 @@ async def public_chat(request: ChatRequest):
             total = len(get_all_messages(request.session_id))
             return {"reply": handoff_msg, "role": "system", "total": total}
 
-    # Build question with conversation history if session exists
-    history = get_history(request.session_id) if request.session_id else []
-    enriched_question = build_question_with_history(request.message, history)
 
     import re
     # Gratitude trigger for automatic rating
@@ -141,22 +138,7 @@ async def public_chat(request: ChatRequest):
             conn.close()
 
     try:
-        rag_chain, retriever = build_rag_chain()
-        source_docs = retriever.invoke(request.message)
-        
-        # Setup Langfuse handler
-        lf_handler = get_langfuse_handler(session_id=request.session_id or "api_request")
-        callbacks = [lf_handler] if lf_handler else []
-
-        from langfuse import propagate_attributes
-        with propagate_attributes(session_id=request.session_id or "api_request"):
-            # Get answer from chain
-            answer = rag_chain.invoke(
-                enriched_question, 
-                config={
-                    "callbacks": callbacks
-                }
-            )
+        answer, source_docs = generate_rag_response(request.message, request.session_id)
     except Exception as e:
         return JSONResponse(
             status_code=500,

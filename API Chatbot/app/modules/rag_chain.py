@@ -66,8 +66,12 @@ def build_rag_chain():
     prompt = ChatPromptTemplate.from_template(get_prompt_template())
     retriever = get_retriever()
 
+    from operator import itemgetter
     rag_chain = (
-        {"context": retriever | format_docs, "question": RunnablePassthrough()}
+        {
+            "context": itemgetter("query") | retriever | format_docs,
+            "question": itemgetter("enriched_question")
+        }
         | prompt
         | llm
         | StrOutputParser()
@@ -92,3 +96,24 @@ def get_langfuse_handler(session_id: str = None):
         except Exception:
             return None
     return None
+
+def generate_rag_response(question: str, session_id: str | None) -> tuple[str, list]:
+    from app.modules.conversation import get_history
+    from langfuse import propagate_attributes
+
+    history = get_history(session_id) if session_id else []
+    enriched_question = build_question_with_history(question, history)
+
+    rag_chain, retriever = build_rag_chain()
+    source_docs = retriever.invoke(question)
+
+    lf_handler = get_langfuse_handler(session_id=session_id or "api_request")
+    callbacks = [lf_handler] if lf_handler else []
+
+    with propagate_attributes(session_id=session_id or "api_request"):
+        answer = rag_chain.invoke(
+            {"query": question, "enriched_question": enriched_question},
+            config={"callbacks": callbacks}
+        )
+
+    return answer, source_docs
