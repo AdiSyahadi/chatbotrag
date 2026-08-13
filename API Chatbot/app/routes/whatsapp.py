@@ -23,16 +23,17 @@ def process_whatsapp_message(payload: dict):
         # Deduplication check
         message_id = data.get("id")
         if message_id:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT message_id FROM processed_webhooks WHERE message_id = ?", (message_id,))
-            if cursor.fetchone():
-                print(f"Skipping duplicate message: {message_id}")
-                conn.close()
-                return
-            cursor.execute("INSERT INTO processed_webhooks (message_id) VALUES (?)", (message_id,))
-            conn.commit()
-            conn.close()
+            try:
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("INSERT OR IGNORE INTO processed_webhooks (message_id) VALUES (?)", (message_id,))
+                if cursor.rowcount == 0:
+                    print(f"Skipping duplicate message: {message_id}")
+                    return
+                conn.commit()
+            finally:
+                if 'conn' in locals() and conn:
+                    conn.close()
             
         chat_jid = data.get("chat_jid") or data.get("from", "")
         # SAAS WA API uses 'type' for message type, not 'message_type'
@@ -87,14 +88,17 @@ def process_whatsapp_message(payload: dict):
             elif status == "AWAITING_RATING":
                 rating_data = parse_rating_with_llm(content)
                 if rating_data["is_rating"]:
-                    conn = get_db_connection()
-                    cursor = conn.cursor()
-                    cursor.execute(
-                        "INSERT INTO ratings (user_id, rating, review_text, source) VALUES (?, ?, ?, ?)",
-                        (sender_log_str, rating_data["rating"], rating_data["review_text"], "WA")
-                    )
-                    conn.commit()
-                    conn.close()
+                    try:
+                        conn = get_db_connection()
+                        cursor = conn.cursor()
+                        cursor.execute(
+                            "INSERT INTO ratings (user_id, rating, review_text, source) VALUES (?, ?, ?, ?)",
+                            (sender_log_str, rating_data["rating"], rating_data["review_text"], "WA")
+                        )
+                        conn.commit()
+                    finally:
+                        if 'conn' in locals() and conn:
+                            conn.close()
                     
                     # Record the user's original rating message into history
                     add_message(sender_log_str, "user", content)
@@ -126,48 +130,49 @@ def process_whatsapp_message(payload: dict):
                     gratitude_pattern = r'(makasih|terima kasih|thanks|terima\s*kasih|oke makasih|ok sip|mantap)'
                     # Hanya trigger jika pesannya relatif pendek dan bukan pertanyaan
                     if len(content) <= 40 and "?" not in content and re.search(gratitude_pattern, content.strip(), re.IGNORECASE):
-                        conn = get_db_connection()
-                        cursor = conn.cursor()
-                        
-                        can_prompt = True
-                        
-                        # Cek apakah sudah pernah rating sukses dalam 7 hari terakhir
-                        cursor.execute("SELECT created_at FROM ratings WHERE user_id = ? ORDER BY created_at DESC LIMIT 1", (sender_log_str,))
-                        last_rating_row = cursor.fetchone()
-                        
-                        if last_rating_row and last_rating_row["created_at"]:
-                            try:
-                                last_rating_time = datetime.strptime(last_rating_row["created_at"], "%Y-%m-%d %H:%M:%S")
-                                if datetime.utcnow() - last_rating_time < timedelta(days=7):
-                                    can_prompt = False
-                            except Exception:
-                                pass
-                                
-                        if can_prompt:
-                            cursor.execute("SELECT last_prompt_time FROM rating_flags WHERE session_id = ?", (sender_log_str,))
-                            row = cursor.fetchone()
-                            if row and row["last_prompt_time"]:
+                        try:
+                            conn = get_db_connection()
+                            cursor = conn.cursor()
+                            
+                            can_prompt = True
+                            
+                            # Cek apakah sudah pernah rating sukses dalam 7 hari terakhir
+                            cursor.execute("SELECT created_at FROM ratings WHERE user_id = ? ORDER BY created_at DESC LIMIT 1", (sender_log_str,))
+                            last_rating_row = cursor.fetchone()
+                            
+                            if last_rating_row and last_rating_row["created_at"]:
                                 try:
-                                    last_prompt = datetime.strptime(row["last_prompt_time"], "%Y-%m-%d %H:%M:%S")
-                                    if datetime.utcnow() - last_prompt < timedelta(hours=24):
+                                    last_rating_time = datetime.strptime(last_rating_row["created_at"], "%Y-%m-%d %H:%M:%S")
+                                    if datetime.utcnow() - last_rating_time < timedelta(days=7):
                                         can_prompt = False
                                 except Exception:
                                     pass
-                        
-                        if can_prompt:
-                            cursor.execute("INSERT OR REPLACE INTO rating_flags (session_id, last_prompt_time) VALUES (?, CURRENT_TIMESTAMP)", (sender_log_str,))
-                            conn.commit()
-                            conn.close()
+                                    
+                            if can_prompt:
+                                cursor.execute("SELECT last_prompt_time FROM rating_flags WHERE session_id = ?", (sender_log_str,))
+                                row = cursor.fetchone()
+                                if row and row["last_prompt_time"]:
+                                    try:
+                                        last_prompt = datetime.strptime(row["last_prompt_time"], "%Y-%m-%d %H:%M:%S")
+                                        if datetime.utcnow() - last_prompt < timedelta(hours=24):
+                                            can_prompt = False
+                                    except Exception:
+                                        pass
                             
-                            set_session_status(sender_log_str, "AWAITING_RATING")
-                            answer = "Sama-sama! 😊 Boleh minta waktunya sebentar? Seberapa puas Anda dengan jawaban otomatis Selacau Bot (1-5 bintang)? Anda bisa membalas bebas, misalnya 'Bintang 5 botnya pintar'."
-                            add_message(sender_log_str, "bot", answer)
-                            
-                            recipient = phone_number or chat_jid.split("@")[0] if "@" in chat_jid else chat_jid
-                            send_whatsapp_message(recipient, answer, chat_jid)
-                            return
-                        else:
-                            conn.close()
+                            if can_prompt:
+                                cursor.execute("INSERT OR REPLACE INTO rating_flags (session_id, last_prompt_time) VALUES (?, CURRENT_TIMESTAMP)", (sender_log_str,))
+                                conn.commit()
+                                
+                                set_session_status(sender_log_str, "AWAITING_RATING")
+                                answer = "Sama-sama! 😊 Boleh minta waktunya sebentar? Seberapa puas Anda dengan jawaban otomatis Selacau Bot (1-5 bintang)? Anda bisa membalas bebas, misalnya 'Bintang 5 botnya pintar'."
+                                add_message(sender_log_str, "bot", answer)
+                                
+                                recipient = phone_number or chat_jid.split("@")[0] if "@" in chat_jid else chat_jid
+                                send_whatsapp_message(recipient, answer, chat_jid)
+                                return
+                        finally:
+                            if 'conn' in locals() and conn:
+                                conn.close()
                             
                     # Call RAG to get the answer
                 try:

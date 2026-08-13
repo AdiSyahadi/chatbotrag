@@ -83,7 +83,14 @@
                     if (pollInterval) {
                         clearInterval(pollInterval);
                         pollInterval = null;
-                        showAlert('Evaluasi selesai!', 'success');
+                        if (data.last_error) {
+                            showAlert('Evaluasi gagal: ' + data.last_error, 'danger');
+                        } else {
+                            showAlert('Evaluasi selesai!', 'success');
+                        }
+                    } else if (data.last_error && !window.hasShownError) {
+                        showAlert('Riwayat evaluasi terakhir gagal: ' + data.last_error, 'danger');
+                        window.hasShownError = true;
                     }
                 }
             } else {

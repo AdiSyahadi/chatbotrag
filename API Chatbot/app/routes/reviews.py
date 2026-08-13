@@ -17,17 +17,35 @@ class ReviewSubmit(BaseModel):
 @router.post("/v1/rating")
 @limiter.limit("2/minute")
 async def submit_rating(request: Request, review: ReviewSubmit):
-    # Gunakan session_id jika ada, jika tidak fallback ke IP
-    user_id = review.session_id if review.session_id else (request.client.host if request.client else "WEB_USER")
-    
     conn = get_db_connection()
     cursor = conn.cursor()
+    
+    # Otorisasi: Validasi session_id dan status
+    if review.session_id:
+        cursor.execute("SELECT status FROM sessions WHERE session_id = ?", (review.session_id,))
+        row = cursor.fetchone()
+        if not row or row["status"] != "AWAITING_RATING":
+            conn.close()
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Sesi tidak valid atau Anda sudah memberikan ulasan."}
+            )
+        user_id = review.session_id
+    else:
+        # Jika tidak ada session_id, tolak (jangan biarkan anonymous IP spam rating)
+        conn.close()
+        return JSONResponse(
+            status_code=400, 
+            content={"error": "Sesi percakapan diperlukan untuk memberikan ulasan."}
+        )
+
+    # Lakukan INSERT dan UPDATE secara transaksional
     cursor.execute(
         "INSERT INTO ratings (user_id, rating, review_text, source) VALUES (?, ?, ?, ?)",
         (user_id, review.rating, review.review_text, "WEB")
     )
-    if review.session_id:
-        cursor.execute("UPDATE sessions SET status = 'RESOLVED' WHERE session_id = ?", (review.session_id,))
+    cursor.execute("UPDATE sessions SET status = 'RESOLVED' WHERE session_id = ?", (user_id,))
+    
     conn.commit()
     conn.close()
     

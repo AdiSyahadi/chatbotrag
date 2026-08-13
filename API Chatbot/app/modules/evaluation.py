@@ -21,14 +21,12 @@ def run_ragas_evaluation(limit: int = 10) -> dict:
         conn.close()
         return {"error": "Tidak ada data evaluasi yang tersedia untuk diuji."}
 
+    valid_rows = []
     questions = []
     answers = []
     contexts_list = []
 
     for row in rows:
-        questions.append(row["question"])
-        answers.append(row["answer"])
-        
         # Parse source_documents JSON
         try:
             sources = json.loads(row["source_documents"])
@@ -36,7 +34,17 @@ def run_ragas_evaluation(limit: int = 10) -> dict:
         except Exception:
             contexts = []
             
+        if not contexts:
+            continue # Skip invalid evaluation data without references
+            
+        questions.append(row["question"])
+        answers.append(row["answer"])
         contexts_list.append(contexts)
+        valid_rows.append(row)
+        
+    if not valid_rows:
+        conn.close()
+        return {"error": "Tidak ada data evaluasi valid dengan referensi dokumen (contexts) yang ditemukan."}
 
     # Create HuggingFace Dataset
     data = {
@@ -62,21 +70,42 @@ def run_ragas_evaluation(limit: int = 10) -> dict:
         if api_key.startswith("gsk_"):
             llm = ChatOpenAI(model="llama3-8b-8192", openai_api_key=api_key, openai_api_base="https://api.groq.com/openai/v1")
         elif api_key.startswith("sk-") and len(api_key) == 35:
-            # Wrap ChatOpenAI to remove 'n' parameter because DeepSeek API rejects n > 1
+            # Wrap ChatOpenAI to support n > 1 for DeepSeek API using parallel asyncio tasks
             class DeepSeekChatOpenAI(ChatOpenAI):
                 def _generate(self, messages, stop=None, run_manager=None, **kwargs):
                     n = kwargs.pop('n', 1)
-                    res = super()._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
-                    if n > 1 and res.generations:
-                        res.generations = res.generations * n
-                    return res
+                    if n == 1:
+                        return super()._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
+                    
+                    final_res = None
+                    generations = []
+                    for _ in range(n):
+                        res = super()._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
+                        if final_res is None: 
+                            final_res = res
+                        generations.extend(res.generations)
+                    
+                    if final_res:
+                        final_res.generations = generations
+                    return final_res
                 
                 async def _agenerate(self, messages, stop=None, run_manager=None, **kwargs):
                     n = kwargs.pop('n', 1)
-                    res = await super()._agenerate(messages, stop=stop, run_manager=run_manager, **kwargs)
-                    if n > 1 and res.generations:
-                        res.generations = res.generations * n
-                    return res
+                    if n == 1:
+                        return await super()._agenerate(messages, stop=stop, run_manager=run_manager, **kwargs)
+                    
+                    import asyncio
+                    _super_agenerate = super()._agenerate
+                    tasks = [_super_agenerate(messages, stop=stop, run_manager=run_manager, **kwargs) for _ in range(n)]
+                    results = await asyncio.gather(*tasks)
+                    
+                    final_res = results[0]
+                    generations = []
+                    for res in results:
+                        generations.extend(res.generations)
+                    
+                    final_res.generations = generations
+                    return final_res
                     
             llm = DeepSeekChatOpenAI(
                 model="deepseek-chat",
@@ -115,14 +144,14 @@ def run_ragas_evaluation(limit: int = 10) -> dict:
         # Save to database
         cursor.execute(
             "INSERT INTO ragas_evaluations (faithfulness, answer_relevancy, samples_count) VALUES (?, ?, ?)",
-            (f_score, ar_score, len(rows))
+            (f_score, ar_score, len(valid_rows))
         )
         conn.commit()
         
         res = {
             "faithfulness": round(f_score, 4),
             "answer_relevancy": round(ar_score, 4),
-            "samples_count": len(rows)
+            "samples_count": len(valid_rows)
         }
     except Exception as e:
         res = {"error": str(e)}

@@ -286,7 +286,22 @@
                 } else {
                     submitBtn.disabled = false;
                     submitBtn.innerText = "Kirim Penilaian";
-                    alert("Gagal mengirim ulasan.");
+                    
+                    var errorMsg = "Gagal mengirim ulasan.";
+                    try {
+                        var errResp = JSON.parse(xhr.responseText);
+                        if (errResp.error) errorMsg = errResp.error;
+                    } catch (e) {}
+                    
+                    var errEl = div.querySelector('.rag-rating-error');
+                    if (!errEl) {
+                        errEl = document.createElement("div");
+                        errEl.className = "rag-rating-error";
+                        errEl.style.cssText = "color:#d32f2f;font-size:12px;margin-bottom:4px;text-align:center;";
+                        div.insertBefore(errEl, submitBtn);
+                    }
+                    var safeError = errorMsg.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                    errEl.innerHTML = "<i class='bi bi-exclamation-circle-fill'></i> " + safeError;
                 }
             }
         };

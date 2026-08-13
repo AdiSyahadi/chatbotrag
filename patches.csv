@@ -17,3 +17,7 @@ P015,Fix infinite rating request loop,"app/routes/whatsapp.py, app/routes/public
 P016,Fix rating parser failing for DeepSeek API keys,app/modules/rating_parser.py,DONE,Verified by porting the AIzaSy detection logic from rag_chain.py to use ChatOpenAI when needed
 P017,Fix WhatsApp permanent rating block and hanging sessions,"app/routes/whatsapp.py, app/modules/conversation.py",DONE,Verified by code inspection and updating regex and cooldown logic to 7 days
 P018,Fix fatal logic of missing chat history and port P017 to Web Widget,"app/routes/whatsapp.py, app/routes/public_api.py",DONE,Verified by adding add_message in AWAITING_RATING and porting logic
+P019,Fix Ragas evaluation empty contexts and DeepSeek Answer Relevancy variance,"app/routes/evaluation.py, app/modules/evaluation.py",DONE,Verified by adding background state observability and parallel generation
+P020,Fix Frontend-Backend Integration UI state missing and secure exposed secrets,"templates/evaluasi.html, app/routes/evaluation.py",DONE,Verified by adding regex sanitizer to backend and bootstrap alert to frontend
+P021,Fix Rating broken access control and idempotency and Frontend Error UX,"app/routes/reviews.py, landing_page/widget.js",DONE,Verified by adding AWAITING_RATING state check in backend and inline div error in widget
+P022,Fix WA Webhook deduplication concurrency crash and database connection leaks,"app/routes/whatsapp.py",DONE,Verified by adding INSERT OR IGNORE and try-finally db close blocks
