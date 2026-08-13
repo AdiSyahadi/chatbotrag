@@ -39,15 +39,24 @@ def process_whatsapp_message(payload: dict):
         # SAAS WA API uses 'type' for message type, not 'message_type'
         message_type = data.get("type") or data.get("message_type", "")
         phone_number = data.get("phone_number", "")
+        contact_name = data.get("contact_name", "")
         
-        # Determine sender string for log and memory session ID
+        # Determine sender string for log and memory session ID (MUST BE ROUTABLE)
         sender_log_str = phone_number if phone_number else chat_jid
+        
+        # Determine display name for UI / Ratings
+        if phone_number:
+            display_name = phone_number
+        elif contact_name:
+            display_name = f"{contact_name} (LID)"
+        else:
+            display_name = chat_jid
         
         print(f"Debug: extracted chat_jid={chat_jid}, message_type={message_type}, phone={phone_number}")
         content = data.get("content", "")
         
         # LOG INCOMING MESSAGE FIRST before skipping
-        chat_logger.add_log("INCOMING", sender_log_str, content, f"Received ({message_type})")
+        chat_logger.add_log("INCOMING", display_name, content, f"Received ({message_type})")
         
         # Avoid processing non-text or empty messages
         if message_type.upper() != "TEXT" or not content:
@@ -93,7 +102,7 @@ def process_whatsapp_message(payload: dict):
                         cursor = conn.cursor()
                         cursor.execute(
                             "INSERT INTO ratings (user_id, rating, review_text, source) VALUES (?, ?, ?, ?)",
-                            (sender_log_str, rating_data["rating"], rating_data["review_text"], "WA")
+                            (display_name, rating_data["rating"], rating_data["review_text"], "WA")
                         )
                         conn.commit()
                     finally:
@@ -107,7 +116,14 @@ def process_whatsapp_message(payload: dict):
                     answer = "Terima kasih atas ulasan Anda! Penilaian Anda sangat berarti bagi kami."
                     add_message(sender_log_str, "bot", answer)
                     
-                    recipient = phone_number or chat_jid.split("@")[0] if "@" in chat_jid else chat_jid
+                    recipient = phone_number
+                    if not recipient:
+                        if "@lid" in chat_jid or "@g.us" in chat_jid:
+                            recipient = chat_jid
+                        elif "@" in chat_jid:
+                            recipient = chat_jid.split("@")[0]
+                        else:
+                            recipient = chat_jid
                     send_whatsapp_message(recipient, answer, chat_jid)
                     return
                 else:
@@ -122,7 +138,14 @@ def process_whatsapp_message(payload: dict):
                     answer = "Sepertinya Anda membutuhkan bantuan lebih lanjut. Saya telah meneruskan obrolan ini ke petugas/admin desa. Mohon tunggu sebentar ya."
                     add_message(sender_log_str, "bot", answer)
                     
-                    recipient = phone_number or chat_jid.split("@")[0] if "@" in chat_jid else chat_jid
+                    recipient = phone_number
+                    if not recipient:
+                        if "@lid" in chat_jid or "@g.us" in chat_jid:
+                            recipient = chat_jid
+                        elif "@" in chat_jid:
+                            recipient = chat_jid.split("@")[0]
+                        else:
+                            recipient = chat_jid
                     send_whatsapp_message(recipient, answer, chat_jid)
                     return
                 else:
@@ -167,7 +190,14 @@ def process_whatsapp_message(payload: dict):
                                 answer = "Sama-sama! 😊 Boleh minta waktunya sebentar? Seberapa puas Anda dengan jawaban otomatis Selacau Bot (1-5 bintang)? Anda bisa membalas bebas, misalnya 'Bintang 5 botnya pintar'."
                                 add_message(sender_log_str, "bot", answer)
                                 
-                                recipient = phone_number or chat_jid.split("@")[0] if "@" in chat_jid else chat_jid
+                                recipient = phone_number
+                                if not recipient:
+                                    if "@lid" in chat_jid or "@g.us" in chat_jid:
+                                        recipient = chat_jid
+                                    elif "@" in chat_jid:
+                                        recipient = chat_jid.split("@")[0]
+                                    else:
+                                        recipient = chat_jid
                                 send_whatsapp_message(recipient, answer, chat_jid)
                                 return
                         finally:
@@ -189,9 +219,12 @@ def process_whatsapp_message(payload: dict):
 
         # PRIORITAS UTAMA: Gunakan nomor HP asli jika tersedia dari webhook (menghindari masalah LID)
         # Fallback ke chat_jid atau extract number
-        recipient = phone_number # Coba nomor HP dulu
+        recipient = phone_number
         if not recipient:
-            if "@" in chat_jid:
+            # Jika JID menggunakan @lid, biarkan utuh agar Baileys bisa mengirim ke Linked Device
+            if "@lid" in chat_jid or "@g.us" in chat_jid:
+                recipient = chat_jid
+            elif "@" in chat_jid:
                 recipient = chat_jid.split("@")[0]
             else:
                 recipient = chat_jid

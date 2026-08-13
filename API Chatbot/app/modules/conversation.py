@@ -239,15 +239,19 @@ async def monitor_sessions():
                 msg = "Sesi obrolan otomatis diakhiri karena tidak ada aktivitas selama 3 menit. Jika percakapan ini bermanfaat, seberapa puas Anda dengan layanan Chatbot kami (1-5 bintang)? Anda bisa membalas dengan 'Bintang 5' atau abaikan pesan ini jika ingin memulai topik baru."
                 add_message(sid, "assistant", msg)
                 
-                # Pastikan recipient dalam format yang didukung SAAS WA API (angka saja)
-                recipient = sid.split("@")[0] if "@" in sid else sid
+                # Pastikan recipient dalam format yang didukung SAAS WA API
+                recipient = sid
+                if "@" in sid and not ("@lid" in sid or "@g.us" in sid):
+                    recipient = sid.split("@")[0]
                 send_whatsapp_message(recipient, msg, fallback_jid=sid)
                 
             for sid in sessions_to_notify_closed:
                 msg = "Sesi obrolan otomatis diakhiri karena tidak ada aktivitas selama 3 menit. Terima kasih telah menghubungi layanan administrasi Desa Selacau. Silakan kirim pesan baru jika Anda butuh bantuan lagi."
                 add_message(sid, "assistant", msg)
                 
-                recipient = sid.split("@")[0] if "@" in sid else sid
+                recipient = sid
+                if "@" in sid and not ("@lid" in sid or "@g.us" in sid):
+                    recipient = sid.split("@")[0]
                 send_whatsapp_message(recipient, msg, fallback_jid=sid)
                 
         except Exception as e:
