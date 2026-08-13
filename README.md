@@ -1,13 +1,13 @@
 # Omnichannel AI Helpdesk (WhatsApp & Web Widget)
 
-Sistem Chatbot Helpdesk kelas Enterprise yang ditenagai oleh **Gemini AI** / **DeepSeek AI** dengan arsitektur **Retrieval-Augmented Generation (RAG)**. Dirancang untuk melayani secara asinkron multi-platform, memadukan interaksi otomatis bot dengan pengambilalihan langsung oleh admin manusia (Live Handoff).
+Sistem Chatbot Helpdesk kelas Enterprise yang ditenagai oleh **Gemini AI** / **DeepSeek AI** / **OpenAI** dengan arsitektur **Retrieval-Augmented Generation (RAG)**. Dirancang untuk melayani secara asinkron multi-platform, memadukan interaksi otomatis bot dengan pengambilalihan langsung oleh admin manusia (Live Handoff).
 
 ## 🚀 Fitur Utama (Enterprise Features)
 
 - **Omnichannel Support**: 
   - Mendukung penerimaan pesan dari **SAAS WA API** (WhatsApp).
   - Menyediakan **Web Chat Widget** (`landing_page/widget.js`) yang interaktif untuk website instansi/perusahaan.
-- **Multi-LLM & RAG Integration**: Mendukung Google Gemini dan DeepSeek secara bergantian. Mampu membaca dokumen PDF/DOCX (Knowledge Base) dan mengekstrak jawaban akurat berbasis lokal _embeddings_ (`all-MiniLM-L6-v2`) yang cepat dan aman.
+- **Multi-LLM & RAG Integration**: Mendukung Google Gemini, DeepSeek, dan OpenAI secara bergantian. Mampu membaca dokumen PDF/DOCX (Knowledge Base) dan mengekstrak jawaban akurat berbasis lokal _embeddings_ (`all-MiniLM-L6-v2`) yang cepat dan aman.
 - **RAGAS Evaluation System**: Evaluasi performa jawaban bot secara periodik menggunakan standar _Faithfulness_ dan _Answer Relevancy_. Membantu mengukur tingkat halusinasi LLM.
 - **Langfuse Observability**: Melacak siklus hidup _prompt_, biaya token, dan latensi secara _real-time_ untuk menunjang audit _Backend_.
 - **Sistem Live Handoff**: Bot pintar mendeteksi niat (Intent) pengguna ketika ingin berbicara dengan staf manusia dan secara otomatis meneruskan obrolan ke dasbor _Admin_.
@@ -66,7 +66,7 @@ Setelah server menyala, Anda wajib masuk ke Dasbor Admin yang dilindungi sistem 
 
 ### Mengisi API Keys
 Setelah masuk ke Dasbor, pergi ke menu **Pengaturan Bot** dan pastikan Anda melengkapi:
-- **Gemini / DeepSeek API Key**
+- **Gemini / DeepSeek / OpenAI API Key**
 - **Langfuse Public, Secret, & Host** (Jika ingin mengaktifkan fitur Telemetri Evaluasi)
 - **WA API URL, Key, dan Instance ID** (Jika terhubung ke SAAS WA API)
 
