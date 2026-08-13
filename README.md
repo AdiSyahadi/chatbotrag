@@ -1,71 +1,79 @@
-# WhatsApp AI ChatBot (FastAPI + Gemini/DeepSeek + RAG)
+# Omnichannel AI Helpdesk (WhatsApp & Web Widget)
 
-ChatBot cerdas untuk WhatsApp yang ditenagai oleh **Gemini AI** / **DeepSeek AI** dan **Retrieval-Augmented Generation (RAG)** menggunakan ChromaDB. ChatBot ini dirancang khusus untuk berjalan berdampingan dengan **SAAS WA API**.
+Sistem Chatbot Helpdesk kelas Enterprise yang ditenagai oleh **Gemini AI** / **DeepSeek AI** dengan arsitektur **Retrieval-Augmented Generation (RAG)**. Dirancang untuk melayani secara asinkron multi-platform, memadukan interaksi otomatis bot dengan pengambilalihan langsung oleh admin manusia (Live Handoff).
 
-## Fitur Utama
-- **Integrasi Multi-LLM**: Mendukung penggunaan **Gemini AI** (google-genai) dan **DeepSeek AI** (via OpenAI SDK) untuk respon yang cerdas.
-- **RAG (Retrieval-Augmented Generation)**: Membaca dokumen PDF/DOCX yang di-upload dan menjawab pertanyaan spesifik berdasarkan pengetahuan di dalam dokumen tersebut.
-- **Local Embeddings**: Menggunakan model `all-MiniLM-L6-v2` dari HuggingFace yang berjalan 100% lokal secara gratis dan cepat (tidak memotong kuota API).
-- **Fast Startup (Lazy Imports)**: Arsitektur backend dioptimalkan menggunakan teknik *Lazy Loading*. Pemuatan pustaka ML raksasa (Transformers, LangChain) dilakukan secara *On-Demand* sehingga server Uvicorn menyala secepat kilat (di bawah 1 detik).
-- **Integrasi Webhook SAAS WA API**: Menerima _webhook_ langsung dari instance SAAS WA API dan membalas pesan secara otomatis.
-- **UI Logs Real-time**: Memantau lalu lintas pesan masuk dan keluar secara langsung dari browser.
-- **Support LID (Linked Identity)**: Mampu menerima dan merespon pesan dari nomor-nomor baru berformat LID.
+## 🚀 Fitur Utama (Enterprise Features)
 
-## Persyaratan Sistem
-- Python 3.9 atau yang lebih baru.
-- Akses ke server SAAS WA API (UnOfficial) yang berjalan secara lokal via Docker.
+- **Omnichannel Support**: 
+  - Mendukung penerimaan pesan dari **SAAS WA API** (WhatsApp).
+  - Menyediakan **Web Chat Widget** (`landing_page/widget.js`) yang interaktif untuk website instansi/perusahaan.
+- **Multi-LLM & RAG Integration**: Mendukung Google Gemini dan DeepSeek secara bergantian. Mampu membaca dokumen PDF/DOCX (Knowledge Base) dan mengekstrak jawaban akurat berbasis lokal _embeddings_ (`all-MiniLM-L6-v2`) yang cepat dan aman.
+- **RAGAS Evaluation System**: Evaluasi performa jawaban bot secara periodik menggunakan standar _Faithfulness_ dan _Answer Relevancy_. Membantu mengukur tingkat halusinasi LLM.
+- **Langfuse Observability**: Melacak siklus hidup _prompt_, biaya token, dan latensi secara _real-time_ untuk menunjang audit _Backend_.
+- **Sistem Live Handoff**: Bot pintar mendeteksi niat (Intent) pengguna ketika ingin berbicara dengan staf manusia dan secara otomatis meneruskan obrolan ke dasbor _Admin_.
+- **User Feedback & Rating**: Pengguna dapat memberikan penilaian kepuasan (Bintang 1-5) via Web atau WA, ditangani langsung oleh sistem penangkal duplikasi atomik SQLite (Anti-Spam).
 
-## Panduan Instalasi Lokal
+## 💻 Persyaratan Sistem
+- Python 3.9 atau lebih baru.
+- Instance Docker SAAS WA API (Opsional, jika ingin mengaktifkan kanal WhatsApp).
+- OS Linux / Windows / MacOS.
 
-### 1. Buat Virtual Environment (Opsional tapi sangat disarankan)
-Buka terminal/command prompt di dalam folder project ini, lalu jalankan:
+## 🛠 Panduan Instalasi Lokal
+
+### 1. Buat Virtual Environment (Disarankan)
+Buka terminal di root direktori proyek, lalu jalankan:
 ```bash
 python -m venv venv
+# Aktifkan di Windows:
 venv\Scripts\activate
+# Aktifkan di Mac/Linux:
+source venv/bin/activate
 ```
 
 ### 2. Install Dependencies
-Pastikan semua library terpasang:
+Pastikan _compiler_ C++ (Build Tools) tersedia jika Anda meng-install pustaka LLM/ChromaDB.
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Konfigurasi Webhook SAAS WA API
-Untuk menghubungkan ChatBot ini ke SAAS WA API yang berjalan di dalam Docker, Anda harus mengarahkan Webhook Target ke alamat IP komputer Anda (`host.docker.internal`). 
-
-Pastikan pengaturan Webhook Target di SAAS WA API adalah sebagai berikut:
-- **Webhook URL**: `http://host.docker.internal:8000/api/whatsapp/webhook`
-- **Events**: Cukup pilih event `message.received`.
-
-### 4. Menjalankan Server ChatBot
-**SANGAT PENTING**: Karena SAAS WA API berjalan di dalam Docker, server ChatBot (FastAPI) harus di-bind ke semua IP agar Docker bisa masuk dan mengirimkan data webhooks.
-
-Buka terminal **pertama**, lalu jalankan API Backend:
+### 3. Menjalankan Server API (Backend)
+Buka terminal **pertama**, lalu jalankan API Backend dengan Uvicorn:
 ```bash
 cd "API Chatbot"
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-Server API akan berjalan di port `8000` atau copy paste ini untuk akses:
- http://127.0.0.1:8000/
+_Catatan: Penggunaan `0.0.0.0` wajib dilakukan jika Anda menautkannya ke webhook Docker (contoh: host.docker.internal)._
 
-
-Buka terminal **kedua**, lalu jalankan Halaman Depan (Landing Page):
+### 4. Menjalankan Landing Page & Web Widget (Frontend)
+Buka terminal **kedua**, jalankan server web statis:
 ```bash
 cd landing_page
 python server.py
 ```
-_(Landing page akan berjalan di port `5500`)_
+*(Landing page akan terbuka di `http://127.0.0.1:5500`)*
 
-### 5. Mengatur API Key & Knowledge Base
-1. Buka browser dan pergi ke **Dashboard ChatBot**: [http://127.0.0.1:8000](http://127.0.0.1:8000) (Hindari menggunakan `localhost` untuk mencegah masalah *connection refused* di Windows).
-2. Buka menu **Documents** untuk mengupload dokumen PDF/DOCX yang ingin digunakan sebagai bahan hafalan bot (RAG).
-3. Buka menu **Pengaturan Bot** dan pastikan Anda mengisi:
-   - **Gemini / DeepSeek API Key**: Masukkan API Key dari Gemini (Google AI Studio) atau DeepSeek.
-   - **WA API URL**: Contoh `http://localhost:3001/api/v1`
-   - **WA API Key**: API Key dari organisasi SAAS WA API Anda.
-   - **WA Instance ID**: ID dari instance WA yang sudah terkoneksi.
+## 🔐 Konfigurasi Awal & Kredensial Default
 
-### 6. Memantau Log Pesan
-Anda bisa melihat riwayat pesan masuk dan pesan keluar (lengkap beserta status keberhasilan dan tujuan nomor) secara _real-time_ di:
-👉 [http://127.0.0.1:8000/logs](http://127.0.0.1:8000/logs)
-Halaman ini akan otomatis me-refresh dirinya setiap 5 detik.
+Setelah server menyala, Anda wajib masuk ke Dasbor Admin yang dilindungi sistem autentikasi JWT:
+👉 **Akses Dasbor Login**: [http://127.0.0.1:8000/login](http://127.0.0.1:8000/login)
+
+**Kredensial Default:**
+- **Username:** `admin`
+- **Password:** `admin123`
+
+> [!WARNING]  
+> **Keamanan**: Segera ubah sandi Anda di *database* atau fitur profil setelah sistem berjalan di ranah produksi (_Production_).
+
+### Mengisi API Keys
+Setelah masuk ke Dasbor, pergi ke menu **Pengaturan Bot** dan pastikan Anda melengkapi:
+- **Gemini / DeepSeek API Key**
+- **Langfuse Public, Secret, & Host** (Jika ingin mengaktifkan fitur Telemetri Evaluasi)
+- **WA API URL, Key, dan Instance ID** (Jika terhubung ke SAAS WA API)
+
+## 📊 Memantau Sistem (Observability)
+
+Sistem ini memiliki beberapa titik pantau (Dashboard) yang bisa diakses oleh Admin:
+1. **Chat Logs (`/logs`)**: Pantau laju pesan asinkron antara pengguna Web/WA dengan bot/manusia.
+2. **Evaluasi LLM (`/evaluasi`)**: Jalankan *batch processing* menggunakan RAGAS framework. Pastikan koneksi internet stabil karena pengecekan metrik akan menghubungi API DeepSeek.
+3. **Ulasan Warga (`/admin/reviews`)**: Memantau tingkat kepuasan (Rating 1-5).
+4. **Knowledge Base (`/documents`)**: Tempat Anda menanam memori (hafalan file PDF/DOCX) baru ke dalam basis vektor ChromaDB.

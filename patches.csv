@@ -21,3 +21,4 @@ P019,Fix Ragas evaluation empty contexts and DeepSeek Answer Relevancy variance,
 P020,Fix Frontend-Backend Integration UI state missing and secure exposed secrets,"templates/evaluasi.html, app/routes/evaluation.py",DONE,Verified by adding regex sanitizer to backend and bootstrap alert to frontend
 P021,Fix Rating broken access control and idempotency and Frontend Error UX,"app/routes/reviews.py, landing_page/widget.js",DONE,Verified by adding AWAITING_RATING state check in backend and inline div error in widget
 P022,Fix WA Webhook deduplication concurrency crash and database connection leaks,"app/routes/whatsapp.py",DONE,Verified by adding INSERT OR IGNORE and try-finally db close blocks
+P023,Rewrite README to Enterprise level with Web Widget and RAGAS documentation,"README.md",DONE,Verified by completely overhauling the README structure
